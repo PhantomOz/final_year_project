@@ -13,8 +13,12 @@ import {
   ArcElement,
 } from "chart.js";
 import { Line, Bar, Pie } from "react-chartjs-2";
-import { fetchAnalyticsData } from "../store/slices/analyticsSlice";
-import { useNotification } from "../context/NotificationContext";
+import {
+  fetchAnalyticsData,
+  selectAnalyticsData,
+  selectAnalyticsLoading,
+  selectAnalyticsError,
+} from "../store/slices/analyticsSlice";
 
 ChartJS.register(
   CategoryScale,
@@ -30,20 +34,19 @@ ChartJS.register(
 
 const Analytics = () => {
   const dispatch = useDispatch();
-  const { showNotification } = useNotification();
   const [dateRange, setDateRange] = useState("week");
-  const { loading, error, data } = useSelector((state) => state.analytics);
+  const analyticsData = useSelector(selectAnalyticsData);
+  const loading = useSelector(selectAnalyticsLoading);
+  const error = useSelector(selectAnalyticsError);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        await dispatch(fetchAnalyticsData(dateRange)).unwrap();
-      } catch (err) {
-        showNotification("error", "Failed to load analytics data");
-      }
-    };
-    fetchData();
-  }, [dispatch, dateRange, showNotification]);
+    dispatch(fetchAnalyticsData(dateRange));
+  }, [dispatch, dateRange]);
+
+  // Handle date range changes
+  const handleDateRangeChange = (range) => {
+    dispatch(setDateRange(range));
+  };
 
   if (loading) return <div className="p-6">Loading analytics...</div>;
   if (error) return <div className="p-6 text-red-500">Error: {error}</div>;
@@ -84,7 +87,7 @@ const Analytics = () => {
         <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
         <select
           value={dateRange}
-          onChange={(e) => setDateRange(e.target.value)}
+          onChange={(e) => handleDateRangeChange(e.target.value)}
           className="px-4 py-2 border rounded-md"
         >
           <option value="week">Last Week</option>
@@ -101,39 +104,44 @@ const Analytics = () => {
             <div>
               <p className="text-gray-600">Total Sales</p>
               <p className="text-2xl font-bold">
-                ${data?.totalSales?.toFixed(2)}
+                ${analyticsData?.totalSales?.toFixed(2)}
               </p>
             </div>
             <div>
               <p className="text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold">{data?.totalOrders}</p>
+              <p className="text-2xl font-bold">{analyticsData?.totalOrders}</p>
             </div>
             <div>
               <p className="text-gray-600">Average Order Value</p>
               <p className="text-2xl font-bold">
-                ${data?.averageOrderValue?.toFixed(2)}
+                ${analyticsData?.averageOrderValue?.toFixed(2)}
               </p>
             </div>
             <div>
               <p className="text-gray-600">Products Sold</p>
-              <p className="text-2xl font-bold">{data?.totalProductsSold}</p>
+              <p className="text-2xl font-bold">
+                {analyticsData?.totalProductsSold}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Sales Trend Chart */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <Line data={data?.salesTrend} options={salesTrendOptions} />
+          <Line data={analyticsData?.salesTrend} options={salesTrendOptions} />
         </div>
 
         {/* Top Products Chart */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <Bar data={data?.topProducts} options={topProductsOptions} />
+          <Bar data={analyticsData?.topProducts} options={topProductsOptions} />
         </div>
 
         {/* Payment Methods Chart */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <Pie data={data?.paymentMethods} options={paymentMethodOptions} />
+          <Pie
+            data={analyticsData?.paymentMethods}
+            options={paymentMethodOptions}
+          />
         </div>
 
         {/* Low Stock Alert */}
@@ -158,7 +166,7 @@ const Analytics = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data?.lowStockProducts?.map((product) => (
+                {analyticsData?.lowStockProducts?.map((product) => (
                   <tr key={product.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {product.name}

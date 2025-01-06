@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import Notification from "../components/Notification";
+import PropTypes from "prop-types";
 
 const NotificationContext = createContext();
 
@@ -27,6 +28,10 @@ export const NotificationProvider = ({ children }) => {
       )}
     </NotificationContext.Provider>
   );
+};
+
+NotificationProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export const useNotification = () => useContext(NotificationContext);
