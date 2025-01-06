@@ -2,16 +2,21 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchUsers,
-  createUser,
-  updateUser,
-  deleteUser,
+  selectUsers,
+  selectUserLoading,
+  selectUserError,
+  useUserOperations,
 } from "../store/slices/userSlice";
-import { useNotification } from "../context/NotificationContext";
+// import { useNotification } from "../context/NotificationContext";
 
 const UserManagement = () => {
   const dispatch = useDispatch();
-  const { showNotification } = useNotification();
-  const { users, loading, error } = useSelector((state) => state.users);
+  //   const { showNotification } = useNotification();
+  const users = useSelector(selectUsers);
+  const loading = useSelector(selectUserLoading);
+  const error = useSelector(selectUserError);
+  const { handleCreateUser, handleUpdateUser, handleDeleteUser } =
+    useUserOperations();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -24,34 +29,25 @@ const UserManagement = () => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (userData) => {
     try {
       if (currentUser) {
-        await dispatch(
-          updateUser({ id: currentUser.id, ...formData })
-        ).unwrap();
-        showNotification("success", "User updated successfully");
+        await handleUpdateUser({ id: currentUser.id, ...userData });
       } else {
-        await dispatch(createUser(formData)).unwrap();
-        showNotification("success", "User created successfully");
+        await handleCreateUser(userData);
       }
       setIsModalOpen(false);
-      resetForm();
     } catch (err) {
-      console.log(err);
-      showNotification("error", "Error saving user");
+      console.error("Operation failed:", err);
     }
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
-        await dispatch(deleteUser(id)).unwrap();
-        showNotification("success", "User deleted successfully");
+        await handleDeleteUser(id);
       } catch (err) {
-        console.log(err);
-        showNotification("error", "Error deleting user");
+        console.error("Delete failed:", err);
       }
     }
   };
