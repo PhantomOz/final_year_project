@@ -1,24 +1,31 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  fetchAnalyticsData,
+  selectAnalyticsData,
+  selectAnalyticsLoading,
+  selectAnalyticsError,
+  setDateRange,
+} from "../store/slices/analyticsSlice";
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
   BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
-  ArcElement,
 } from "chart.js";
-import { Line, Bar, Pie } from "react-chartjs-2";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
 import {
-  fetchAnalyticsData,
-  selectAnalyticsData,
-  selectAnalyticsLoading,
-  selectAnalyticsError,
-} from "../store/slices/analyticsSlice";
+  CashIcon,
+  ShoppingCartIcon,
+  TrendingUpIcon,
+  UserGroupIcon,
+} from "@heroicons/react/outline";
 
 ChartJS.register(
   CategoryScale,
@@ -34,122 +41,200 @@ ChartJS.register(
 
 const Analytics = () => {
   const dispatch = useDispatch();
-  const [dateRange, setDateRange] = useState("week");
-  const analyticsData = useSelector(selectAnalyticsData);
+  const data = useSelector(selectAnalyticsData);
   const loading = useSelector(selectAnalyticsLoading);
   const error = useSelector(selectAnalyticsError);
+  const [selectedRange, setSelectedRange] = useState("week");
 
   useEffect(() => {
-    dispatch(fetchAnalyticsData(dateRange));
-  }, [dispatch, dateRange]);
+    dispatch(fetchAnalyticsData(selectedRange));
+  }, [dispatch, selectedRange]);
 
-  // Handle date range changes
-  const handleDateRangeChange = (range) => {
+  const handleRangeChange = (range) => {
+    setSelectedRange(range);
     dispatch(setDateRange(range));
   };
 
-  if (loading) return <div className="p-6">Loading analytics...</div>;
-  if (error) return <div className="p-6 text-red-500">Error: {error}</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
-  const salesTrendOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Sales Trend" },
-    },
-    scales: {
-      y: { beginAtZero: true },
-    },
-  };
+  if (error) {
+    return (
+      <div className="text-red-500 text-center p-4">
+        Error loading analytics: {error}
+      </div>
+    );
+  }
 
-  const topProductsOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Top Products" },
+  const stats = [
+    {
+      name: "Total Sales",
+      value: `$${data.totalSales.toFixed(2)}`,
+      icon: CashIcon,
+      change: "+12%",
+      changeType: "increase",
     },
-    scales: {
-      y: { beginAtZero: true },
+    {
+      name: "Total Orders",
+      value: data.totalOrders,
+      icon: ShoppingCartIcon,
+      change: "+8%",
+      changeType: "increase",
     },
-  };
-
-  const paymentMethodOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Payment Methods" },
+    {
+      name: "Average Order Value",
+      value: `$${data.averageOrderValue.toFixed(2)}`,
+      icon: TrendingUpIcon,
+      change: "+3%",
+      changeType: "increase",
     },
-  };
+    {
+      name: "Total Products Sold",
+      value: data.totalProductsSold,
+      icon: UserGroupIcon,
+      change: "+5%",
+      changeType: "increase",
+    },
+  ];
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-        <select
-          value={dateRange}
-          onChange={(e) => handleDateRangeChange(e.target.value)}
-          className="px-4 py-2 border rounded-md"
-        >
-          <option value="week">Last Week</option>
-          <option value="month">Last Month</option>
-          <option value="year">Last Year</option>
-        </select>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Analytics Dashboard
+        </h1>
+        <div className="mt-4 flex space-x-4">
+          {["day", "week", "month", "year"].map((range) => (
+            <button
+              key={range}
+              onClick={() => handleRangeChange(range)}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                selectedRange === range
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {range.charAt(0).toUpperCase() + range.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Sales Overview Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-lg font-semibold mb-4">Sales Overview</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600">Total Sales</p>
-              <p className="text-2xl font-bold">
-                ${analyticsData?.totalSales?.toFixed(2)}
-              </p>
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <div
+            key={stat.name}
+            className="bg-white overflow-hidden shadow rounded-lg"
+          >
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <stat.icon
+                    className="h-6 w-6 text-gray-400"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      {stat.name}
+                    </dt>
+                    <dd className="flex items-baseline">
+                      <div className="text-2xl font-semibold text-gray-900">
+                        {stat.value}
+                      </div>
+                      <div
+                        className={`ml-2 flex items-baseline text-sm font-semibold ${
+                          stat.changeType === "increase"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {stat.change}
+                      </div>
+                    </dd>
+                  </dl>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold">{analyticsData?.totalOrders}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Average Order Value</p>
-              <p className="text-2xl font-bold">
-                ${analyticsData?.averageOrderValue?.toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600">Products Sold</p>
-              <p className="text-2xl font-bold">
-                {analyticsData?.totalProductsSold}
-              </p>
-            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 mt-6 lg:grid-cols-2">
+        {/* Sales Trend Chart */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">Sales Trend</h2>
+          <div className="h-80">
+            <Line
+              data={data.salesTrend}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: "top",
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                  },
+                },
+              }}
+            />
           </div>
         </div>
 
-        {/* Sales Trend Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <Line data={analyticsData?.salesTrend} options={salesTrendOptions} />
-        </div>
-
         {/* Top Products Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <Bar data={analyticsData?.topProducts} options={topProductsOptions} />
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">Top Products</h2>
+          <div className="h-80">
+            <Bar
+              data={data.topProducts}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: "top",
+                  },
+                },
+              }}
+            />
+          </div>
         </div>
 
         {/* Payment Methods Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <Pie
-            data={analyticsData?.paymentMethods}
-            options={paymentMethodOptions}
-          />
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">Payment Methods</h2>
+          <div className="h-80">
+            <Doughnut
+              data={data.paymentMethods}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: "top",
+                  },
+                },
+              }}
+            />
+          </div>
         </div>
 
-        {/* Low Stock Alert */}
-        <div className="bg-white p-6 rounded-lg shadow-md col-span-2">
+        {/* Low Stock Products */}
+        <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Low Stock Alert</h2>
-          <div className="overflow-x-auto">
+          <div className="overflow-y-auto max-h-80">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead>
+              <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Product
@@ -158,28 +243,32 @@ const Analytics = () => {
                     Current Stock
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Minimum Required
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {analyticsData?.lowStockProducts?.map((product) => (
+                {data.lowStockProducts.map((product) => (
                   <tr key={product.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {product.name}
+                      <div className="text-sm font-medium text-gray-900">
+                        {product.name}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {product.currentStock}
+                      <div className="text-sm text-gray-900">
+                        {product.stock_quantity}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {product.minRequired}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                        Low Stock
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          product.stock_quantity <= 5
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {product.stock_quantity <= 5 ? "Critical" : "Low Stock"}
                       </span>
                     </td>
                   </tr>

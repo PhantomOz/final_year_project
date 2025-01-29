@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchDashboardData } from "../store/slices/analyticsSlice";
+import { fetchAnalyticsData } from "../store/slices/analyticsSlice";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,7 +32,7 @@ const Dashboard = () => {
   );
 
   useEffect(() => {
-    dispatch(fetchDashboardData());
+    dispatch(fetchAnalyticsData("week"));
   }, [dispatch]);
 
   if (loading) return <div>Loading...</div>;
@@ -41,11 +41,10 @@ const Dashboard = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Sales Trend Chart */}
+        {/* Sales Chart */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Sales Trend</h2>
+          <h2 className="text-lg font-semibold mb-4">Sales Overview</h2>
           <Line
             data={salesData}
             options={{
@@ -56,7 +55,7 @@ const Dashboard = () => {
                 },
                 title: {
                   display: true,
-                  text: "Daily Sales",
+                  text: "Sales Trend",
                 },
               },
             }}
