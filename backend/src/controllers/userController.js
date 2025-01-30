@@ -7,6 +7,7 @@ const userController = {
     try {
       const { username, password, role } = req.body;
 
+      console.log(username, password, role);
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
