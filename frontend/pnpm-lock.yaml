@@ -47,6 +47,9 @@ dependencies:
   redux-mock-store:
     specifier: ^1.5.5
     version: 1.5.5(redux@5.0.1)
+  redux-persist:
+    specifier: ^6.0.0
+    version: 6.0.0(react@18.3.1)(redux@5.0.1)
   redux-thunk:
     specifier: ^3.1.0
     version: 3.1.0(redux@5.0.1)
@@ -2777,6 +2780,19 @@ packages:
       redux: '*'
     dependencies:
       lodash.isplainobject: 4.0.6
+      redux: 5.0.1
+    dev: false
+
+  /redux-persist@6.0.0(react@18.3.1)(redux@5.0.1):
+    resolution: {integrity: sha512-71LLMbUq2r02ng2We9S215LtPu3fY0KgaGE0k8WRgl6RkqxtGfl7HUozz1Dftwsb0D/5mZ8dwAaPbtnzfvbEwQ==}
+    peerDependencies:
+      react: '>=16'
+      redux: '>4.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+    dependencies:
+      react: 18.3.1
       redux: 5.0.1
     dev: false
 

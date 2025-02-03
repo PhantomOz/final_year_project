@@ -32,7 +32,7 @@ export const deleteProduct = createAsyncThunk("products/delete", async (id) => {
 export const updateStock = createAsyncThunk(
   "products/updateStock",
   async ({ id, quantity, type }) => {
-    const response = await api.post(`/products/${id}/stock`, {
+    const response = await api.patch(`/products/${id}/stock`, {
       quantity,
       type,
     });

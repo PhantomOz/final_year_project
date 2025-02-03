@@ -11,12 +11,17 @@ import {
   CreditCardIcon,
 } from "@heroicons/react/outline";
 import ReceiptPrinter from "../components/ReceiptPrinter";
+import { useNotification } from "../context/NotificationContext";
+import { useSelector } from "react-redux";
 
 const Transactions = () => {
   // const dispatch = useDispatch();
   // const products = useSelector(selectProducts);
+  const { showNotification } = useNotification();
   const { handleCreateTransaction } = useTransactionOperations();
   const { handleScanProduct } = useScannerOperations();
+  const { user } = useSelector((state) => state.auth);
+
   const barcodeInputRef = useRef(null);
 
   const [cart, setCart] = useState([]);
@@ -24,23 +29,20 @@ const Transactions = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [completedTransaction, setCompletedTransaction] = useState(null);
 
-  useEffect(() => {
-    barcodeInputRef.current?.focus();
-  }, []);
-
-  const handleBarcodeSubmit = async (e) => {
-    e.preventDefault();
-    const barcode = barcodeInputRef.current.value;
-    try {
-      const product = await handleScanProduct(barcode);
-      addToCart(product);
-      barcodeInputRef.current.value = "";
-    } catch (err) {
-      console.error("Scan failed:", err);
-    }
-  };
-
   const addToCart = (product) => {
+    if (!product) {
+      showNotification("error", "Product does not exist in the database");
+      return;
+    }
+
+    if (!product.id || !product.price) {
+      console.error(
+        "Invalid product format - missing required fields:",
+        product
+      );
+      return;
+    }
+
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
@@ -52,6 +54,95 @@ const Transactions = () => {
       }
       return [...prevCart, { ...product, quantity: 1 }];
     });
+  };
+
+  const handleScannedBarcode = async (barcode) => {
+    try {
+      const cleanBarcode = barcode.trim();
+      console.log("Scanning barcode:", cleanBarcode);
+      const product = await handleScanProduct(cleanBarcode);
+
+      if (!product) {
+        showNotification(
+          "error",
+          `Product with barcode ${cleanBarcode} not found in database`
+        );
+        return;
+      }
+
+      addToCart(product);
+      showNotification("success", `Added ${product.name} to cart`);
+    } catch (err) {
+      console.error("Scan failed:", err);
+      if (err.response?.status === 404) {
+        showNotification(
+          "error",
+          `Product with barcode ${barcode} not found in database`
+        );
+      } else {
+        showNotification("error", "Failed to scan product. Please try again.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    let lastKeyTime = Date.now();
+    let accumulatedInput = "";
+
+    const handleKeyPress = (e) => {
+      // Ignore if focus is on input field
+      if (e.target.tagName === "INPUT") {
+        return;
+      }
+
+      const currentTime = Date.now();
+
+      // If there's a long delay between keystrokes, start fresh
+      if (currentTime - lastKeyTime > 100) {
+        accumulatedInput = "";
+      }
+
+      // Add the character to our accumulated input
+      if (/^[a-zA-Z0-9]+$/.test(e.key)) {
+        accumulatedInput += e.key;
+      }
+
+      // Process barcode when Enter is pressed or after a delay
+      if (e.key === "Enter") {
+        if (accumulatedInput.length > 0) {
+          handleScannedBarcode(accumulatedInput);
+          accumulatedInput = "";
+        }
+      } else {
+        // Set a timeout to process the barcode if no more keys are pressed
+        setTimeout(() => {
+          if (accumulatedInput.length >= 5 && currentTime === lastKeyTime) {
+            // Only process if no new keys were pressed
+            handleScannedBarcode(accumulatedInput);
+            accumulatedInput = "";
+          }
+        }, 50);
+      }
+
+      lastKeyTime = currentTime;
+      console.log("Accumulated:", accumulatedInput); // Debug log
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, []);
+
+  // Handle manual barcode input
+  const handleBarcodeSubmit = async (e) => {
+    e.preventDefault();
+    const barcode = barcodeInputRef.current.value;
+    if (barcode) {
+      await handleScannedBarcode(barcode);
+      barcodeInputRef.current.value = "";
+    }
   };
 
   const updateQuantity = (productId, change) => {
@@ -75,17 +166,20 @@ const Transactions = () => {
   };
 
   const handleCheckout = async () => {
+    console.log("Cart-", cart);
     try {
       const transaction = await handleCreateTransaction({
         items: cart.map((item) => ({
           product_id: item.id,
           quantity: item.quantity,
-          price: item.price,
+          unit_price: item.price,
         })),
         payment_method: paymentMethod,
         total_amount: calculateTotal(),
+        user_id: user?.id,
       });
-      setCompletedTransaction(transaction);
+      console.log("transactions -", transaction);
+      setCompletedTransaction(transaction?.payload);
       setShowReceipt(true);
       setCart([]);
     } catch (err) {
@@ -167,7 +261,7 @@ const Transactions = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          ${item.price.toFixed(2)}
+                          ${item.price}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

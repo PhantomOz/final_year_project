@@ -1,79 +1,51 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
+const initialState = {
+  loading: false,
+  error: null,
+  dateRange: "week",
+  salesData: {
+    labels: [],
+    datasets: [
+      {
+        label: "Sales",
+        data: [],
+        borderColor: "rgb(75, 192, 192)",
+        tension: 0.1,
+      },
+    ],
+  },
+  topProducts: {
+    labels: [],
+    datasets: [
+      {
+        label: "Top Products",
+        data: [],
+        backgroundColor: "rgba(53, 162, 235, 0.5)",
+      },
+    ],
+  },
+  totalSales: 0,
+  totalOrders: 0,
+  averageOrderValue: 0,
+  totalProductsSold: 0,
+};
+
 // Async thunk for fetching analytics data
 export const fetchAnalyticsData = createAsyncThunk(
   "analytics/fetchData",
-  async (dateRange) => {
-    const response = await api.get(`/analytics?range=${dateRange}`);
+  async (timeRange) => {
+    const response = await api.get(
+      `/analytics/dashboard?timeRange=${timeRange}`
+    );
     return response.data;
   }
 );
 
-// Format data for charts
-const formatSalesTrendData = (data) => ({
-  labels: data.dates,
-  datasets: [
-    {
-      label: "Daily Sales",
-      data: data.sales,
-      fill: false,
-      borderColor: "rgb(75, 192, 192)",
-      tension: 0.1,
-    },
-  ],
-});
-
-const formatTopProductsData = (data) => ({
-  labels: data.products.map((p) => p.name),
-  datasets: [
-    {
-      label: "Units Sold",
-      data: data.products.map((p) => p.quantity),
-      backgroundColor: "rgba(54, 162, 235, 0.5)",
-      borderColor: "rgb(54, 162, 235)",
-      borderWidth: 1,
-    },
-  ],
-});
-
-const formatPaymentMethodsData = (data) => ({
-  labels: Object.keys(data.paymentMethods),
-  datasets: [
-    {
-      data: Object.values(data.paymentMethods),
-      backgroundColor: [
-        "rgba(255, 99, 132, 0.5)",
-        "rgba(54, 162, 235, 0.5)",
-        "rgba(255, 206, 86, 0.5)",
-      ],
-      borderColor: [
-        "rgba(255, 99, 132, 1)",
-        "rgba(54, 162, 235, 1)",
-        "rgba(255, 206, 86, 1)",
-      ],
-      borderWidth: 1,
-    },
-  ],
-});
-
 const analyticsSlice = createSlice({
   name: "analytics",
-  initialState: {
-    loading: false,
-    error: null,
-    data: {
-      totalSales: 0,
-      totalOrders: 0,
-      averageOrderValue: 0,
-      totalProductsSold: 0,
-      salesTrend: null,
-      topProducts: null,
-      paymentMethods: null,
-      lowStockProducts: [],
-    },
-    dateRange: "week",
-  },
+  initialState,
   reducers: {
     setDateRange: (state, action) => {
       state.dateRange = action.payload;
@@ -87,18 +59,31 @@ const analyticsSlice = createSlice({
       })
       .addCase(fetchAnalyticsData.fulfilled, (state, action) => {
         state.loading = false;
-        const data = action.payload;
-
-        state.data = {
-          totalSales: data.totalSales,
-          totalOrders: data.totalOrders,
-          averageOrderValue: data.averageOrderValue,
-          totalProductsSold: data.totalProductsSold,
-          salesTrend: formatSalesTrendData(data.salesTrend),
-          topProducts: formatTopProductsData(data.topProducts),
-          paymentMethods: formatPaymentMethodsData(data.paymentMethods),
-          lowStockProducts: data.lowStockProducts,
+        state.salesData = {
+          labels: action.payload.salesData.labels,
+          datasets: [
+            {
+              label: "Sales",
+              data: action.payload.salesData.data,
+              borderColor: "rgb(75, 192, 192)",
+              tension: 0.1,
+            },
+          ],
         };
+        state.topProducts = {
+          labels: action.payload.topProducts.labels,
+          datasets: [
+            {
+              label: "Top Products",
+              data: action.payload.topProducts.data,
+              backgroundColor: "rgba(53, 162, 235, 0.5)",
+            },
+          ],
+        };
+        state.totalSales = action.payload.totalSales;
+        state.totalOrders = action.payload.totalOrders;
+        state.averageOrderValue = action.payload.averageOrderValue;
+        state.totalProductsSold = action.payload.totalProductsSold;
       })
       .addCase(fetchAnalyticsData.rejected, (state, action) => {
         state.loading = false;
@@ -107,13 +92,19 @@ const analyticsSlice = createSlice({
   },
 });
 
+export const { setDateRange } = analyticsSlice.actions;
+
 // Selectors
-export const selectAnalyticsData = (state) => state.analytics.data;
+export const selectAnalyticsData = (state) => ({
+  salesData: state.analytics.salesData,
+  topProducts: state.analytics.topProducts,
+  totalSales: state.analytics.totalSales,
+  totalOrders: state.analytics.totalOrders,
+  averageOrderValue: state.analytics.averageOrderValue,
+  totalProductsSold: state.analytics.totalProductsSold,
+});
 export const selectAnalyticsLoading = (state) => state.analytics.loading;
 export const selectAnalyticsError = (state) => state.analytics.error;
 export const selectDateRange = (state) => state.analytics.dateRange;
-
-// Actions
-export const { setDateRange } = analyticsSlice.actions;
 
 export default analyticsSlice.reducer;

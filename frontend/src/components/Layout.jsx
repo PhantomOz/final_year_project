@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../store/slices/authSlice";
+import { logout, setCredentials } from "../store/slices/authSlice";
 import {
   HomeIcon,
   ShoppingCartIcon,
@@ -12,6 +12,8 @@ import {
   LogoutIcon,
 } from "@heroicons/react/outline";
 import PropTypes from "prop-types";
+import Scanner from "./Scanner";
+import { getCurrentUser } from "../services/authService";
 
 const Layout = ({ children }) => {
   const dispatch = useDispatch();
@@ -34,6 +36,30 @@ const Layout = ({ children }) => {
   ];
 
   const isActivePath = (path) => location.pathname === path;
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const userData = await getCurrentUser();
+          console.log(userData);
+          dispatch(
+            setCredentials({
+              user: userData,
+            })
+          );
+        } catch (error) {
+          console.error("Error fetching user:", error);
+          handleLogout();
+        }
+      } else if (location.pathname !== "/login") {
+        navigate("/login");
+      }
+    };
+
+    fetchUser();
+  }, [dispatch, navigate, location.pathname]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -145,6 +171,7 @@ const Layout = ({ children }) => {
           </div>
         </main>
       </div>
+      <Scanner />
     </div>
   );
 };

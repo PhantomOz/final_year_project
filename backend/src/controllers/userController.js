@@ -54,6 +54,26 @@ const userController = {
         .json({ message: "Error during login", error: error.message });
     }
   },
+
+  async getCurrentUser(req, res) {
+    try {
+      // req.user is set by the auth middleware
+      const result = await pool.query(
+        "SELECT id, username, role FROM users WHERE id = $1",
+        [req.user.id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Error fetching user", error: error.message });
+    }
+  },
 };
 
 module.exports = userController;

@@ -3,6 +3,7 @@ import api from "../../services/api";
 
 export const login = createAsyncThunk("auth/login", async (credentials) => {
   const response = await api.post("/users/login", credentials);
+  console.log(response.data);
   localStorage.setItem("token", response.data.token);
   return response.data;
 });
@@ -16,6 +17,10 @@ const authSlice = createSlice({
     error: null,
   },
   reducers: {
+    setCredentials: (state, action) => {
+      const { user } = action.payload;
+      state.user = user;
+    },
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -40,5 +45,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, setCredentials } = authSlice.actions;
 export default authSlice.reducer;

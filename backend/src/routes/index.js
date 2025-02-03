@@ -15,6 +15,7 @@ router.post(
   userController.register
 );
 router.post("/users/login", userController.login);
+router.get("/users/me", authMiddleware, userController.getCurrentUser);
 
 // Product routes
 router.post(
@@ -36,6 +37,11 @@ router.delete(
   isAdmin,
   productController.deleteProduct
 );
+router.patch(
+  "/products/:id/stock",
+  authMiddleware,
+  productController.updateProductStock
+);
 
 // Transaction routes
 router.post(
@@ -47,6 +53,16 @@ router.get(
   "/transactions",
   authMiddleware,
   transactionController.getTransactions
+);
+router.get(
+  "/transactions/:id",
+  authMiddleware,
+  transactionController.getTransactionById
+);
+router.get(
+  "/transactions/user/:userId",
+  authMiddleware,
+  transactionController.getTransactionsByUserId
 );
 
 // Inventory routes

@@ -38,50 +38,58 @@ const Dashboard = () => {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  // Ensure data exists before rendering charts
+  const canRenderCharts =
+    salesData?.labels?.length > 0 && topProducts?.labels?.length > 0;
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Sales Chart */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Sales Overview</h2>
-          <Line
-            data={salesData}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: "top",
+      {canRenderCharts ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Sales Chart */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h2 className="text-lg font-semibold mb-4">Sales Overview</h2>
+            <Line
+              data={salesData}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: "top",
+                  },
+                  title: {
+                    display: true,
+                    text: "Sales Trend",
+                  },
                 },
-                title: {
-                  display: true,
-                  text: "Sales Trend",
-                },
-              },
-            }}
-          />
-        </div>
+              }}
+            />
+          </div>
 
-        {/* Top Products Chart */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Top Products</h2>
-          <Bar
-            data={topProducts}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: "top",
+          {/* Top Products Chart */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h2 className="text-lg font-semibold mb-4">Top Products</h2>
+            <Bar
+              data={topProducts}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: "top",
+                  },
+                  title: {
+                    display: true,
+                    text: "Best Selling Products",
+                  },
                 },
-                title: {
-                  display: true,
-                  text: "Best Selling Products",
-                },
-              },
-            }}
-          />
+              }}
+            />
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="text-center text-gray-500">No data available</div>
+      )}
     </div>
   );
 };

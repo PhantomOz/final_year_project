@@ -1,12 +1,15 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 import { useNotification } from "../../context/NotificationContext";
+import { useDispatch } from "react-redux";
 
 // Async thunks
-export const scanProduct = createAsyncThunk(
+export const handleScanProduct = createAsyncThunk(
   "scanner/scanProduct",
   async (barcode) => {
+    console.log("received barcode- ", barcode);
     const response = await api.post("/scanner-input", { barcode });
+    console.log(response);
     return response.data;
   }
 );
@@ -27,29 +30,31 @@ export const validateBarcode = createAsyncThunk(
   }
 );
 
+const initialState = {
+  isConnected: false,
+  isScanning: false,
+  lastScannedProduct: null,
+  scannedProducts: [],
+  scanHistory: [],
+  error: null,
+  loading: false,
+  settings: {
+    autoSubmit: true,
+    scanDelay: 100,
+    validateBarcodes: true,
+    scanSound: true,
+    vibrateOnScan: true,
+  },
+  deviceInfo: {
+    type: null,
+    name: null,
+    connectionType: null,
+  },
+};
+
 const scannerSlice = createSlice({
   name: "scanner",
-  initialState: {
-    isConnected: false,
-    isScanning: false,
-    lastScannedBarcode: null,
-    scannedProducts: [],
-    scanHistory: [],
-    error: null,
-    loading: false,
-    settings: {
-      autoSubmit: true,
-      scanDelay: 100,
-      validateBarcodes: true,
-      scanSound: true,
-      vibrateOnScan: true,
-    },
-    deviceInfo: {
-      type: null,
-      name: null,
-      connectionType: null,
-    },
-  },
+  initialState,
   reducers: {
     setConnected: (state, action) => {
       state.isConnected = action.payload;
@@ -79,19 +84,28 @@ const scannerSlice = createSlice({
         state.scanHistory.pop();
       }
     },
+    clearLastScannedProduct: (state) => {
+      state.lastScannedProduct = null;
+    },
   },
   extraReducers: (builder) => {
     builder
       // Scan Product
-      .addCase(scanProduct.pending, (state) => {
+      .addCase(handleScanProduct.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(scanProduct.fulfilled, (state, action) => {
+      .addCase(handleScanProduct.fulfilled, (state, action) => {
         state.loading = false;
-        state.lastScannedBarcode = action.payload.barcode;
-        state.scannedProducts.push(action.payload);
-        state.addToScanHistory(action.payload.barcode);
+        state.lastScannedProduct = action.payload;
+        state.scanHistory.unshift({
+          ...action.payload,
+          timestamp: new Date().toISOString(),
+        });
+        // Keep only last 50 scans
+        if (state.scanHistory.length > 50) {
+          state.scanHistory.pop();
+        }
 
         // Play scan sound if enabled
         if (state.settings.scanSound) {
@@ -103,7 +117,7 @@ const scannerSlice = createSlice({
           navigator.vibrate(50);
         }
       })
-      .addCase(scanProduct.rejected, (state, action) => {
+      .addCase(handleScanProduct.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })
@@ -151,17 +165,16 @@ const playErrorSound = () => {
 };
 
 // Selectors
-export const selectScannerState = (state) => ({
-  isConnected: state.scanner.isConnected,
-  isScanning: state.scanner.isScanning,
-  lastScannedBarcode: state.scanner.lastScannedBarcode,
-});
+export const selectScannerState = (state) => state.scanner;
 export const selectScannedProducts = (state) => state.scanner.scannedProducts;
 export const selectScanHistory = (state) => state.scanner.scanHistory;
 export const selectScannerSettings = (state) => state.scanner.settings;
 export const selectScannerDeviceInfo = (state) => state.scanner.deviceInfo;
 export const selectScannerError = (state) => state.scanner.error;
 export const selectScannerLoading = (state) => state.scanner.loading;
+export const selectLastScannedProduct = (state) =>
+  state.scanner.lastScannedProduct;
+export const selectIsScanning = (state) => state.scanner.isScanning;
 
 // Actions
 export const {
@@ -172,16 +185,20 @@ export const {
   updateSettings,
   setDeviceInfo,
   addToScanHistory,
+  clearLastScannedProduct,
 } = scannerSlice.actions;
 
 // Custom hook for scanner operations with notifications
 export const useScannerOperations = () => {
   const { showNotification } = useNotification();
+  const dispatch = useDispatch();
 
   const handleScannerOperation = async (operation, ...args) => {
+    console.log(operation, ...args);
     try {
-      const result = await operation(...args);
-      return result;
+      const result = await dispatch(operation(...args));
+      console.log(result);
+      return result.payload;
     } catch (error) {
       showNotification("error", error.message || "Scanner operation failed");
       throw error;
@@ -190,7 +207,7 @@ export const useScannerOperations = () => {
 
   return {
     handleScanProduct: (...args) =>
-      handleScannerOperation(scanProduct, ...args),
+      handleScannerOperation(handleScanProduct, ...args),
     handleBatchScan: (...args) =>
       handleScannerOperation(batchScanProducts, ...args),
     handleValidateBarcode: (...args) =>

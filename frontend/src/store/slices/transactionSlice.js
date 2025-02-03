@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 import { useNotification } from "../../context/NotificationContext";
 import { updateStock } from "./productSlice";
+import { useDispatch } from "react-redux";
 
 // Async thunks
 export const fetchTransactions = createAsyncThunk(
@@ -21,7 +22,7 @@ export const createTransaction = createAsyncThunk(
   "transactions/create",
   async (transactionData, { dispatch }) => {
     const response = await api.post("/transactions", transactionData);
-
+    console.log(transactionData);
     // Update stock levels for each product in the transaction
     for (const item of transactionData.items) {
       await dispatch(
@@ -149,7 +150,7 @@ const transactionSlice = createSlice({
         state.loading = false;
         state.transactions.unshift(action.payload);
         state.currentTransaction = action.payload;
-        state.updateStats();
+        updateStats();
       })
       .addCase(createTransaction.rejected, (state, action) => {
         state.loading = false;
@@ -169,7 +170,7 @@ const transactionSlice = createSlice({
         if (index !== -1) {
           state.transactions[index] = action.payload;
         }
-        state.updateStats();
+        updateStats();
       })
       .addCase(voidTransaction.rejected, (state, action) => {
         state.loading = false;
@@ -231,10 +232,11 @@ export const {
 // Custom hook for transaction operations with notifications
 export const useTransactionOperations = () => {
   const { showNotification } = useNotification();
+  const dispatch = useDispatch();
 
   const handleTransactionOperation = async (operation, ...args) => {
     try {
-      const result = await operation(...args);
+      const result = await dispatch(operation(...args));
       showNotification("success", "Transaction completed successfully");
       return result;
     } catch (error) {
