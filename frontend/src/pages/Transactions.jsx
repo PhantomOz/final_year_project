@@ -13,6 +13,7 @@ import {
 import ReceiptPrinter from "../components/ReceiptPrinter";
 import { useNotification } from "../context/NotificationContext";
 import { useSelector } from "react-redux";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const Transactions = () => {
   // const dispatch = useDispatch();
@@ -219,10 +220,10 @@ const Transactions = () => {
                       Product
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Quantity
+                      Price
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Price
+                      Quantity
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
@@ -236,38 +237,30 @@ const Transactions = () => {
                   {cart.map((item) => (
                     <tr key={item.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {item.name}
-                        </div>
+                        {item.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {formatCurrency(item.price)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => updateQuantity(item.id, -1)}
-                            className="text-gray-500 hover:text-gray-700"
+                            className="p-1 rounded-full hover:bg-gray-100"
                           >
-                            <MinusIcon className="h-4 w-4" />
+                            <MinusIcon className="h-4 w-4 text-gray-500" />
                           </button>
-                          <span className="text-sm text-gray-900">
-                            {item.quantity}
-                          </span>
+                          <span>{item.quantity}</span>
                           <button
                             onClick={() => updateQuantity(item.id, 1)}
-                            className="text-gray-500 hover:text-gray-700"
+                            className="p-1 rounded-full hover:bg-gray-100"
                           >
-                            <PlusIcon className="h-4 w-4" />
+                            <PlusIcon className="h-4 w-4 text-gray-500" />
                           </button>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          ${item.price}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </div>
+                        {formatCurrency(item.price * item.quantity)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
@@ -325,7 +318,7 @@ const Transactions = () => {
               <div className="border-t pt-4">
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total:</span>
-                  <span>${calculateTotal().toFixed(2)}</span>
+                  <span>{formatCurrency(calculateTotal())}</span>
                 </div>
               </div>
 

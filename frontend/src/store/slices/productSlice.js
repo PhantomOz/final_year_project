@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 import { useNotification } from "../../context/NotificationContext";
+import { useDispatch } from "react-redux";
 
 // Async thunks
 export const fetchProducts = createAsyncThunk("products/fetchAll", async () => {
@@ -217,10 +218,11 @@ export const {
 // Custom hook for product operations with notifications
 export const useProductOperations = () => {
   const { showNotification } = useNotification();
+  const dispatch = useDispatch();
 
   const handleProductOperation = async (operation, ...args) => {
     try {
-      await operation(...args);
+      await dispatch(operation(...args));
       showNotification("success", "Operation completed successfully");
     } catch (error) {
       showNotification("error", error.message || "Operation failed");

@@ -26,6 +26,11 @@ const initialState = {
       },
     ],
   },
+  kpiData: {
+    totalSales: 0,
+    totalProducts: 0,
+    lowStockItems: 0,
+  },
   totalSales: 0,
   totalOrders: 0,
   averageOrderValue: 0,
@@ -80,6 +85,11 @@ const analyticsSlice = createSlice({
             },
           ],
         };
+        state.kpiData = {
+          totalSales: action.payload.totalSales,
+          totalProducts: action.payload.totalProducts,
+          lowStockItems: action.payload.lowStockItems,
+        };
         state.totalSales = action.payload.totalSales;
         state.totalOrders = action.payload.totalOrders;
         state.averageOrderValue = action.payload.averageOrderValue;
@@ -98,6 +108,7 @@ export const { setDateRange } = analyticsSlice.actions;
 export const selectAnalyticsData = (state) => ({
   salesData: state.analytics.salesData,
   topProducts: state.analytics.topProducts,
+  kpiData: state.analytics.kpiData,
   totalSales: state.analytics.totalSales,
   totalOrders: state.analytics.totalOrders,
   averageOrderValue: state.analytics.averageOrderValue,

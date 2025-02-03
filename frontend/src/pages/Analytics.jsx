@@ -102,6 +102,19 @@ const Analytics = () => {
     },
   ];
 
+  // Add default chart data structures
+  const defaultChartData = {
+    labels: [],
+    datasets: [
+      {
+        label: "No Data",
+        data: [],
+        borderColor: "rgb(75, 192, 192)",
+        tension: 0.1,
+      },
+    ],
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -126,7 +139,7 @@ const Analytics = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {stats?.map((stat) => (
           <div
             key={stat.name}
             className="bg-white overflow-hidden shadow rounded-lg"
@@ -172,7 +185,7 @@ const Analytics = () => {
           <h2 className="text-lg font-semibold mb-4">Sales Trend</h2>
           <div className="h-80">
             <Line
-              data={data.salesTrend}
+              data={data?.salesTrend || defaultChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -196,7 +209,7 @@ const Analytics = () => {
           <h2 className="text-lg font-semibold mb-4">Top Products</h2>
           <div className="h-80">
             <Bar
-              data={data.topProducts}
+              data={data?.topProducts || defaultChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -215,7 +228,17 @@ const Analytics = () => {
           <h2 className="text-lg font-semibold mb-4">Payment Methods</h2>
           <div className="h-80">
             <Doughnut
-              data={data.paymentMethods}
+              data={
+                data?.paymentMethods || {
+                  labels: ["No Data"],
+                  datasets: [
+                    {
+                      data: [1],
+                      backgroundColor: ["#e5e7eb"],
+                    },
+                  ],
+                }
+              }
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -248,7 +271,7 @@ const Analytics = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data.lowStockProducts.map((product) => (
+                {data?.lowStockProducts?.map((product) => (
                   <tr key={product.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">

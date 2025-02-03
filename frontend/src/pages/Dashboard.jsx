@@ -27,7 +27,7 @@ ChartJS.register(
 
 const Dashboard = () => {
   const dispatch = useDispatch();
-  const { salesData, topProducts, loading, error } = useSelector(
+  const { salesData, topProducts, kpiData, loading, error } = useSelector(
     (state) => state.analytics
   );
 
@@ -45,6 +45,29 @@ const Dashboard = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-gray-500 text-sm">Total Sales</h3>
+          <p className="text-2xl font-bold">
+            ${kpiData?.totalSales?.toLocaleString() || "0"}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-gray-500 text-sm">Total Products</h3>
+          <p className="text-2xl font-bold">
+            {kpiData?.totalProducts?.toLocaleString() || "0"}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-gray-500 text-sm">Low Stock Items</h3>
+          <p className="text-2xl font-bold">
+            {kpiData?.lowStockItems?.toLocaleString() || "0"}
+          </p>
+        </div>
+      </div>
+
       {canRenderCharts ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Sales Chart */}

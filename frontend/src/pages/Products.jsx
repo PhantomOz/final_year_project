@@ -13,6 +13,8 @@ import {
   TrashIcon,
   SearchIcon,
 } from "@heroicons/react/outline";
+import { formatCurrency } from "../utils/formatCurrency";
+import api from "../services/api";
 
 const Products = () => {
   const dispatch = useDispatch();
@@ -25,23 +27,53 @@ const Products = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     stock_quantity: "",
     barcode: "",
+    category_id: "",
+  });
+  const [filters, setFilters] = useState({
     category: "",
+    minPrice: "",
+    maxPrice: "",
   });
 
   useEffect(() => {
     dispatch(fetchProducts());
+    fetchCategories();
   }, [dispatch]);
 
-  const filteredProducts = products.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.barcode.includes(searchTerm)
-  );
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get("/categories");
+      setCategories(response.data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      (product.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (product.barcode?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+
+    const matchesCategory =
+      !filters.category ||
+      String(product.category_id) === String(filters.category);
+
+    const price = Number(product.price);
+    const matchesMinPrice =
+      !filters.minPrice || price >= Number(filters.minPrice);
+    const matchesMaxPrice =
+      !filters.maxPrice || price <= Number(filters.maxPrice);
+
+    return (
+      matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice
+    );
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,8 +97,22 @@ const Products = () => {
       price: "",
       stock_quantity: "",
       barcode: "",
-      category: "",
+      category_id: "",
     });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    console.log(name, value);
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   return (
@@ -85,7 +131,7 @@ const Products = () => {
         </button>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 space-y-4">
         <div className="relative rounded-md shadow-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <SearchIcon className="h-5 w-5 text-gray-400" />
@@ -95,7 +141,41 @@ const Products = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-            placeholder="Search products..."
+            placeholder="Search by name or barcode..."
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <select
+            name="category"
+            value={filters.category}
+            onChange={handleFilterChange}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          >
+            <option value="">All Categories</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="number"
+            name="minPrice"
+            value={filters.minPrice}
+            onChange={handleFilterChange}
+            placeholder="Min Price"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          />
+
+          <input
+            type="number"
+            name="maxPrice"
+            value={filters.maxPrice}
+            onChange={handleFilterChange}
+            placeholder="Max Price"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>
       </div>
@@ -115,14 +195,15 @@ const Products = () => {
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Price
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
+
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -135,13 +216,18 @@ const Products = () => {
                     <div className="text-sm font-medium text-gray-900">
                       {product.name}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-900">
                       {product.barcode}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      ${product.price}
+                      {product.category_name}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {formatCurrency(product.price)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -155,9 +241,6 @@ const Products = () => {
                       {product.stock_quantity}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.category}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => {
@@ -167,7 +250,7 @@ const Products = () => {
                           price: product.price,
                           stock_quantity: product.stock_quantity,
                           barcode: product.barcode,
-                          category: product.category,
+                          category_id: product.category_id,
                         });
                         setIsModalOpen(true);
                       }}
@@ -200,81 +283,52 @@ const Products = () => {
 
             <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Name
-                  </label>
+                <div className="grid grid-cols-1 gap-4">
                   <input
                     type="text"
+                    name="name"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
+                    onChange={handleInputChange}
+                    placeholder="Product Name"
+                    className="border p-2 rounded"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Price
-                  </label>
                   <input
                     type="number"
-                    step="0.01"
+                    name="price"
                     value={formData.price}
-                    onChange={(e) =>
-                      setFormData({ ...formData, price: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
+                    onChange={handleInputChange}
+                    placeholder="Price"
+                    className="border p-2 rounded"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Stock Quantity
-                  </label>
                   <input
                     type="number"
+                    name="stock_quantity"
                     value={formData.stock_quantity}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        stock_quantity: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
+                    onChange={handleInputChange}
+                    placeholder="Stock Quantity"
+                    className="border p-2 rounded"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Barcode
-                  </label>
                   <input
                     type="text"
+                    name="barcode"
                     value={formData.barcode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, barcode: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onChange={handleInputChange}
+                    placeholder="Barcode"
+                    className="border p-2 rounded"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
+                  <select
+                    name="category_id"
+                    value={formData.category_id}
+                    onChange={handleInputChange}
+                    className="border p-2 rounded"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">

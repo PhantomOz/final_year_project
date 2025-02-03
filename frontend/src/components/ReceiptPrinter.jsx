@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import PropTypes from "prop-types";
 import { useReactToPrint } from "react-to-print";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const Receipt = React.forwardRef(({ transaction }, ref) => (
   <div ref={ref} className="p-4 bg-white">
@@ -31,9 +32,9 @@ const Receipt = React.forwardRef(({ transaction }, ref) => (
           <tr key={item?.product_id}>
             <td>{item?.product_name}</td>
             <td className="text-right">{item?.quantity}</td>
-            <td className="text-right">${item?.unit_price.toFixed(2)}</td>
+            <td className="text-right">{formatCurrency(item?.unit_price)}</td>
             <td className="text-right">
-              ${(item.quantity * item?.unit_price).toFixed(2)}
+              {formatCurrency(item.quantity * item?.unit_price)}
             </td>
           </tr>
         ))}
@@ -44,16 +45,16 @@ const Receipt = React.forwardRef(({ transaction }, ref) => (
       <div className="flex justify-between">
         <span>Subtotal:</span>
         <span>
-          ${transaction.subtotal?.toFixed(2) || transaction.total_amount}
+          {formatCurrency(transaction.subtotal || transaction.total_amount)}
         </span>
       </div>
       <div className="flex justify-between">
         <span>Tax:</span>
-        <span>${transaction.tax?.toFixed(2) || 0.0}</span>
+        <span>{formatCurrency(transaction.tax || 0.0)}</span>
       </div>
       <div className="flex justify-between font-bold">
         <span>Total:</span>
-        <span>${Number(transaction.total_amount).toFixed(2)}</span>
+        <span>{formatCurrency(Number(transaction.total_amount))}</span>
       </div>
     </div>
 
@@ -68,7 +69,7 @@ Receipt.displayName = "Receipt";
 
 Receipt.propTypes = {
   transaction: PropTypes.shape({
-    id: PropTypes.string.isRequired,
+    id: PropTypes.number.isRequired,
     created_at: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
     items: PropTypes.arrayOf(
