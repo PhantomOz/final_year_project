@@ -14,6 +14,7 @@ CREATE TABLE products
     barcode VARCHAR(50) UNIQUE,
     price DECIMAL(10,2) NOT NULL,
     stock_quantity INTEGER NOT NULL,
+    category VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -35,3 +36,12 @@ CREATE TABLE transaction_items
     unit_price DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- If you want to enforce specific categories, you can create a categories table
+CREATE TABLE categories
+(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

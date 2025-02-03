@@ -3,10 +3,10 @@ const pool = require("../database/pool");
 const productController = {
   async createProduct(req, res) {
     try {
-      const { name, price, stock_quantity, barcode } = req.body;
+      const { name, price, stock_quantity, barcode, category_id } = req.body;
       const result = await pool.query(
-        "INSERT INTO products (name, price, stock_quantity, barcode) VALUES ($1, $2, $3, $4) RETURNING *",
-        [name, price, stock_quantity, barcode]
+        "INSERT INTO products (name, price, stock_quantity, barcode, category_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [name, price, stock_quantity, barcode, category_id]
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -18,7 +18,12 @@ const productController = {
 
   async getAllProducts(req, res) {
     try {
-      const result = await pool.query("SELECT * FROM products ORDER BY name");
+      const result = await pool.query(`
+        SELECT p.*, c.name as category_name 
+        FROM products p 
+        LEFT JOIN categories c ON p.category_id = c.id 
+        ORDER BY p.name
+      `);
       res.json(result.rows);
     } catch (error) {
       res
@@ -30,11 +35,51 @@ const productController = {
   async updateProduct(req, res) {
     try {
       const { id } = req.params;
-      const { name, price, stock_quantity, barcode } = req.body;
-      const result = await pool.query(
-        "UPDATE products SET name = $1, price = $2, stock_quantity = $3, barcode = $4 WHERE id = $5 RETURNING *",
-        [name, price, stock_quantity, barcode, id]
-      );
+      const { name, price, stock_quantity, barcode, category_id } = req.body;
+
+      let updateFields = [];
+      let queryParams = [];
+      let paramCount = 1;
+
+      if (name !== undefined) {
+        updateFields.push(`name = $${paramCount}`);
+        queryParams.push(name);
+        paramCount++;
+      }
+      if (price !== undefined) {
+        updateFields.push(`price = $${paramCount}`);
+        queryParams.push(price);
+        paramCount++;
+      }
+      if (stock_quantity !== undefined) {
+        updateFields.push(`stock_quantity = $${paramCount}`);
+        queryParams.push(stock_quantity);
+        paramCount++;
+      }
+      if (barcode !== undefined) {
+        updateFields.push(`barcode = $${paramCount}`);
+        queryParams.push(barcode);
+        paramCount++;
+      }
+      if (category_id !== undefined) {
+        updateFields.push(`category_id = $${paramCount}`);
+        queryParams.push(category_id);
+        paramCount++;
+      }
+
+      if (updateFields.length === 0) {
+        return res.status(400).json({ message: "No fields to update" });
+      }
+
+      queryParams.push(id);
+      const query = `
+        UPDATE products 
+        SET ${updateFields.join(", ")} 
+        WHERE id = $${paramCount} 
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, queryParams);
       if (result.rows.length === 0) {
         return res.status(404).json({ message: "Product not found" });
       }
@@ -74,11 +119,9 @@ const productController = {
       }
 
       if (type !== "increase" && type !== "decrease") {
-        return res
-          .status(400)
-          .json({
-            message: "Invalid type. Type must be 'increase' or 'decrease'",
-          });
+        return res.status(400).json({
+          message: "Invalid type. Type must be 'increase' or 'decrease'",
+        });
       }
 
       let updateQuery = "";
@@ -113,6 +156,17 @@ const productController = {
         message: "Error updating product stock",
         error: error.message,
       });
+    }
+  },
+
+  async getCategories(req, res) {
+    try {
+      const result = await pool.query("SELECT * FROM categories ORDER BY name");
+      res.json(result.rows);
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Error fetching categories", error: error.message });
     }
   },
 };

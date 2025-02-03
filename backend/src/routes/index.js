@@ -18,6 +18,7 @@ router.post("/users/login", userController.login);
 router.get("/users/me", authMiddleware, userController.getCurrentUser);
 
 // Product routes
+router.get("/categories", authMiddleware, productController.getCategories);
 router.post(
   "/products",
   authMiddleware,
