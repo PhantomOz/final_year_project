@@ -16,6 +16,7 @@ import {
   BanknotesIcon,
   ShoppingCartIcon,
   UsersIcon,
+  DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { formatCurrency } from "../utils/formatCurrency";
 import MarkdownRenderer from "../components/MarkdownRenderer";
@@ -31,6 +32,7 @@ import {
   setDateRange,
   selectSelectedRange,
 } from "../store/slices/analyticsSlice";
+import { generateAnalyticsPDF } from "../utils/pdfGenerator";
 
 // Register ChartJS components
 ChartJS.register(
@@ -113,6 +115,18 @@ const Analytics = () => {
     },
   ];
 
+  const handleExportPDF = () => {
+    if (!statsLoading && !trendsLoading && !productsLoading) {
+      generateAnalyticsPDF({
+        rangeStats,
+        salesTrends,
+        topProducts,
+        insights: insights.data,
+        selectedRange,
+      });
+    }
+  };
+
   if (statsLoading || trendsLoading || productsLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -124,10 +138,22 @@ const Analytics = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Track your business performance and trends
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Track your business performance and trends
+            </p>
+          </div>
+          <button
+            onClick={handleExportPDF}
+            disabled={statsLoading || trendsLoading || productsLoading}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+            Export Report
+          </button>
+        </div>
         <div className="mt-4 flex space-x-4">
           {["day", "week", "month", "year"].map((range) => (
             <button
@@ -146,7 +172,7 @@ const Analytics = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {stats.map((stat) => (
           <div
             key={stat.name}
@@ -167,12 +193,12 @@ const Analytics = () => {
         ))}
       </div>
 
-      {/* Charts Grid */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Sales Trend Chart */}
+        {/* Sales Trends Chart */}
         <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Sales Trend</h2>
-          <div className="h-80">
+          <h2 className="text-lg font-semibold mb-4">Sales Trends</h2>
+          <div className="h-80" id="salesTrendsChart">
             <Line
               data={salesTrends || { labels: [], datasets: [] }}
               options={{
@@ -183,11 +209,6 @@ const Analytics = () => {
                     position: "top",
                   },
                 },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                  },
-                },
               }}
             />
           </div>
@@ -196,7 +217,7 @@ const Analytics = () => {
         {/* Top Products Chart */}
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Top Products</h2>
-          <div className="h-80">
+          <div className="h-80" id="topProductsChart">
             <Bar
               data={topProducts || { labels: [], datasets: [] }}
               options={{
