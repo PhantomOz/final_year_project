@@ -11,8 +11,8 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  SearchIcon,
-} from "@heroicons/react/outline";
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 import { formatCurrency } from "../utils/formatCurrency";
 import api from "../services/api";
 
@@ -134,7 +134,7 @@ const Products = () => {
       <div className="mb-6 space-y-4">
         <div className="relative rounded-md shadow-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <SearchIcon className="h-5 w-5 text-gray-400" />
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"

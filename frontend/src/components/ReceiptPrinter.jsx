@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import PropTypes from "prop-types";
 import { useReactToPrint } from "react-to-print";
 import { formatCurrency } from "../utils/formatCurrency";
+// import { PrinterIcon } from "@heroicons/react/24/outline";
 
 const Receipt = React.forwardRef(({ transaction }, ref) => (
   <div ref={ref} className="p-4 bg-white">

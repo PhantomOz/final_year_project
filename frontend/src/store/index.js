@@ -7,6 +7,7 @@ import transactionReducer from "./slices/transactionSlice";
 import analyticsReducer from "./slices/analyticsSlice";
 import scannerReducer from "./slices/scannerSlice";
 import userReducer from "./slices/userSlice";
+import dashboardReducer from "./slices/dashboardSlice";
 
 const persistConfig = {
   key: "root",
@@ -23,6 +24,7 @@ export const store = configureStore({
     transactions: transactionReducer,
     users: userReducer,
     analytics: analyticsReducer,
+    dashboard: dashboardReducer,
     scanner: scannerReducer,
   },
   middleware: (getDefaultMiddleware) =>

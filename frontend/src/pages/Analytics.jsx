@@ -1,23 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  selectAnalyticsLoading,
-  selectAnalyticsError,
-  setDateRange,
-  fetchSalesTrends,
-  fetchTopProducts,
-  fetchSeasonalTrends,
-  fetchLowStockAlerts,
-  fetchDashboardStats,
-  selectDateRange,
-  selectSalesTrends,
-  selectTopProducts,
-  selectSeasonalTrends,
-  selectLowStockProducts,
-  selectDashboardStats,
-  selectInsights,
-  generateAIInsights,
-} from "../store/slices/analyticsSlice";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,28 +7,38 @@ import {
   PointElement,
   LineElement,
   BarElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
-import { Line, Bar, Doughnut } from "react-chartjs-2";
+import { Line, Bar } from "react-chartjs-2";
 import {
-  CashIcon,
+  BanknotesIcon,
   ShoppingCartIcon,
-  TrendingUpIcon,
-  UserGroupIcon,
-} from "@heroicons/react/outline";
-import { formatCurrency } from "../utils/formatCurrency.js";
+  UsersIcon,
+} from "@heroicons/react/24/outline";
+import { formatCurrency } from "../utils/formatCurrency";
 import MarkdownRenderer from "../components/MarkdownRenderer";
+import {
+  fetchRangeStats,
+  fetchSalesTrends,
+  fetchTopProducts,
+  generateAIInsights,
+  selectRangeStats,
+  selectSalesTrends,
+  selectTopProducts,
+  selectInsights,
+  setDateRange,
+  selectSelectedRange,
+} from "../store/slices/analyticsSlice";
 
+// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
   BarElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend
@@ -54,44 +46,74 @@ ChartJS.register(
 
 const Analytics = () => {
   const dispatch = useDispatch();
-  const dateRange = useSelector(selectDateRange);
-  const salesTrends = useSelector(selectSalesTrends);
-  const topProducts = useSelector(selectTopProducts);
-  const seasonalTrends = useSelector(selectSeasonalTrends);
-  const lowStockProducts = useSelector(selectLowStockProducts);
-  const dashboardStats = useSelector(selectDashboardStats);
-  const loading = useSelector(selectAnalyticsLoading);
-  const error = useSelector(selectAnalyticsError);
+  const selectedRange = useSelector(selectSelectedRange);
+  const { data: rangeStats, loading: statsLoading } =
+    useSelector(selectRangeStats);
+  const { data: salesTrends, loading: trendsLoading } =
+    useSelector(selectSalesTrends);
+  const { data: topProducts, loading: productsLoading } =
+    useSelector(selectTopProducts);
   const insights = useSelector(selectInsights);
-  const [selectedRange, setSelectedRange] = useState("week");
 
-  useEffect(
-    () => {
-      dispatch(fetchSalesTrends(dateRange));
-      dispatch(fetchTopProducts());
-      dispatch(fetchSeasonalTrends());
-      dispatch(fetchLowStockAlerts());
-      dispatch(fetchDashboardStats());
-      if (salesTrends && topProducts && seasonalTrends && dashboardStats) {
-        // dispatch(generateAIInsights());
-      }
-    },
-    [
-      // dispatch,
-      // dateRange,
-      // salesTrends,
-      // topProducts,
-      // seasonalTrends,
-      // dashboardStats,
-    ]
-  );
+  useEffect(() => {
+    dispatch(fetchRangeStats(selectedRange));
+    dispatch(fetchSalesTrends(selectedRange));
+    dispatch(fetchTopProducts(selectedRange));
+  }, [dispatch, selectedRange]);
 
-  const handleRangeChange = (range) => {
-    setSelectedRange(range);
-    dispatch(setDateRange(range));
+  useEffect(() => {
+    if (rangeStats && salesTrends && topProducts) {
+      dispatch(
+        generateAIInsights({
+          rangeStats,
+          salesTrends,
+          topProducts,
+          selectedRange,
+        })
+      );
+    }
+  }, [dispatch, rangeStats, salesTrends, topProducts, selectedRange]);
+
+  const getDateRangeLabel = (range) => {
+    switch (range) {
+      case "day":
+        return "Today's";
+      case "week":
+        return "This Week's";
+      case "month":
+        return "This Month's";
+      case "year":
+        return "This Year's";
+      default:
+        return "Today's";
+    }
   };
 
-  if (loading) {
+  const stats = [
+    {
+      name: `${getDateRangeLabel(selectedRange)} Transactions`,
+      value: rangeStats?.transactionCount?.toLocaleString() || "0",
+      icon: ShoppingCartIcon,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+    {
+      name: `${getDateRangeLabel(selectedRange)} Revenue`,
+      value: formatCurrency(rangeStats?.totalAmount || 0),
+      icon: BanknotesIcon,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
+      name: "Active Users",
+      value: rangeStats?.uniqueUsers?.toLocaleString() || "0",
+      icon: UsersIcon,
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
+    },
+  ];
+
+  if (statsLoading || trendsLoading || productsLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -99,117 +121,19 @@ const Analytics = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-red-500 text-center p-4">
-        Error loading analytics: {error}
-      </div>
-    );
-  }
-
-  const stats = [
-    {
-      name: "Today's Transactions",
-      value: dashboardStats.todayTransactions || 0,
-      icon: ShoppingCartIcon,
-    },
-    {
-      name: "Today's Revenue",
-      value: formatCurrency(dashboardStats.todayRevenue || 0),
-      icon: CashIcon,
-    },
-    {
-      name: "Active Users",
-      value: dashboardStats.activeUsers || 0,
-      icon: UserGroupIcon,
-    },
-    {
-      name: "Low Stock Items",
-      value: dashboardStats.lowStockItems || 0,
-      icon: TrendingUpIcon,
-    },
-  ];
-
-  // Add default chart data structures
-  const defaultChartData = {
-    labels: [],
-    datasets: [
-      {
-        label: "No Data",
-        data: [],
-        borderColor: "rgb(75, 192, 192)",
-        tension: 0.1,
-      },
-    ],
-  };
-
-  const renderInsights = () => (
-    <div className="col-span-2 bg-white p-6 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">AI-Generated Insights</h2>
-        <button
-          onClick={() => dispatch(generateAIInsights())}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          disabled={insights.loading}
-        >
-          {insights.loading ? (
-            <span className="flex items-center">
-              <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Generating...
-            </span>
-          ) : (
-            "Refresh Insights"
-          )}
-        </button>
-      </div>
-
-      {insights.error ? (
-        <div className="text-red-500 p-4 bg-red-50 rounded-md">
-          Error generating insights: {insights.error}
-        </div>
-      ) : insights.data ? (
-        <div className="prose max-w-none">
-          <MarkdownRenderer content={insights.data} />
-        </div>
-      ) : (
-        <div className="text-gray-500 text-center py-8">
-          Click &quot;Refresh Insights&quot; to generate AI analysis
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Analytics Dashboard
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Track your business performance and trends
+        </p>
         <div className="mt-4 flex space-x-4">
           {["day", "week", "month", "year"].map((range) => (
             <button
               key={range}
-              onClick={() => handleRangeChange(range)}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
+              onClick={() => dispatch(setDateRange(range))}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 selectedRange === range
                   ? "bg-blue-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -221,45 +145,36 @@ const Analytics = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats?.map((stat) => (
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+        {stats.map((stat) => (
           <div
             key={stat.name}
-            className="bg-white overflow-hidden shadow rounded-lg"
+            className="bg-white rounded-lg shadow-sm p-6 transition duration-300 hover:shadow-md"
           >
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <stat.icon
-                    className="h-6 w-6 text-gray-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      {stat.name}
-                    </dt>
-                    <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">
-                        {stat.value}
-                      </div>
-                    </dd>
-                  </dl>
-                </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                <p className="mt-2 text-2xl font-semibold text-gray-900">
+                  {stat.value}
+                </p>
+              </div>
+              <div className={`${stat.bgColor} ${stat.color} p-3 rounded-full`}>
+                <stat.icon className="w-6 h-6" />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 mt-6 lg:grid-cols-2">
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Sales Trend Chart */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Sales Trend</h2>
           <div className="h-80">
             <Line
-              data={salesTrends || defaultChartData}
+              data={salesTrends || { labels: [], datasets: [] }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -279,11 +194,11 @@ const Analytics = () => {
         </div>
 
         {/* Top Products Chart */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Top Products</h2>
           <div className="h-80">
             <Bar
-              data={topProducts || defaultChartData}
+              data={topProducts || { labels: [], datasets: [] }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -294,90 +209,68 @@ const Analytics = () => {
                 },
               }}
             />
-          </div>
-        </div>
-
-        {/* Payment Methods Chart */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Payment Methods</h2>
-          <div className="h-80">
-            <Doughnut
-              data={
-                seasonalTrends || {
-                  labels: ["No Data"],
-                  datasets: [
-                    {
-                      data: [1],
-                      backgroundColor: ["#e5e7eb"],
-                    },
-                  ],
-                }
-              }
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: "top",
-                  },
-                },
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Low Stock Products */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Low Stock Alert</h2>
-          <div className="overflow-y-auto max-h-80">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Current Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {lowStockProducts?.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {product.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {product.stock_quantity}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.stock_quantity <= 5
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {product.stock_quantity <= 5 ? "Critical" : "Low Stock"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
 
-      {/* Add insights section */}
-      <div className="mt-6">{renderInsights()}</div>
+      {/* AI Insights */}
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-lg font-semibold">AI-Generated Insights</h2>
+            <p className="text-sm text-gray-500">
+              Smart analysis of your business data
+            </p>
+          </div>
+          <button
+            onClick={() => dispatch(generateAIInsights())}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            disabled={insights.loading}
+          >
+            {insights.loading ? (
+              <span className="flex items-center">
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Generating...
+              </span>
+            ) : (
+              "Refresh Insights"
+            )}
+          </button>
+        </div>
+
+        {insights.error ? (
+          <div className="text-red-500 p-4 bg-red-50 rounded-md">
+            Error generating insights: {insights.error}
+          </div>
+        ) : insights.data ? (
+          <div className="prose max-w-none">
+            <MarkdownRenderer content={insights.data} />
+          </div>
+        ) : (
+          <div className="text-gray-500 text-center py-8">
+            Click &quot;Refresh Insights&quot; to generate AI analysis
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -7,11 +7,11 @@ import {
   ShoppingCartIcon,
   ChartBarIcon,
   UsersIcon,
-  MenuIcon,
-  XIcon,
-  LogoutIcon,
+  Bars3Icon,
+  XMarkIcon,
+  ArrowRightOnRectangleIcon,
   ClockIcon,
-} from "@heroicons/react/outline";
+} from "@heroicons/react/24/outline";
 import PropTypes from "prop-types";
 import Scanner from "./Scanner";
 import { getCurrentUser } from "../services/authService";
@@ -113,7 +113,7 @@ const Layout = ({ children }) => {
                   onClick={handleLogout}
                   className="flex items-center text-sm text-red-500 hover:text-red-700"
                 >
-                  <LogoutIcon className="mr-2 h-5 w-5" />
+                  <ArrowRightOnRectangleIcon className="mr-2 h-5 w-5" />
                   Logout
                 </button>
               </div>
@@ -129,9 +129,9 @@ const Layout = ({ children }) => {
           className="fixed top-4 right-4 z-50 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
         >
           {isMobileMenuOpen ? (
-            <XIcon className="h-6 w-6" />
+            <XMarkIcon className="h-6 w-6" />
           ) : (
-            <MenuIcon className="h-6 w-6" />
+            <Bars3Icon className="h-6 w-6" />
           )}
         </button>
       </div>

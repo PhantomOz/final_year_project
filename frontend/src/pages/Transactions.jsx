@@ -6,10 +6,10 @@ import { useScannerOperations } from "../store/slices/scannerSlice";
 import {
   PlusIcon,
   MinusIcon,
-  XIcon,
-  CashIcon,
+  XMarkIcon,
+  BanknotesIcon,
   CreditCardIcon,
-} from "@heroicons/react/outline";
+} from "@heroicons/react/24/outline";
 import ReceiptPrinter from "../components/ReceiptPrinter";
 import { useNotification } from "../context/NotificationContext";
 import { useSelector } from "react-redux";
@@ -267,7 +267,7 @@ const Transactions = () => {
                           onClick={() => removeFromCart(item.id)}
                           className="text-red-600 hover:text-red-900"
                         >
-                          <XIcon className="h-5 w-5" />
+                          <XMarkIcon className="h-5 w-5" />
                         </button>
                       </td>
                     </tr>
@@ -297,7 +297,7 @@ const Transactions = () => {
                         : "border-gray-300 text-gray-700"
                     }`}
                   >
-                    <CashIcon className="h-5 w-5 mr-2" />
+                    <BanknotesIcon className="h-5 w-5 mr-2" />
                     Cash
                   </button>
                   <button

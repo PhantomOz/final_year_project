@@ -2,161 +2,111 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 import openaiService from "../../services/openaiService";
 
-const initialState = {
-  loading: false,
-  error: null,
-  dateRange: "daily",
-  salesTrends: {
-    labels: [],
-    datasets: [
-      {
-        label: "Sales",
-        data: [],
-        borderColor: "rgb(75, 192, 192)",
-        tension: 0.1,
-      },
-      {
-        label: "Moving Average",
-        data: [],
-        borderColor: "rgb(255, 99, 132)",
-        tension: 0.1,
-        borderDash: [5, 5],
-      },
-    ],
-  },
-  topProducts: {
-    labels: [],
-    datasets: [
-      {
-        label: "Revenue",
-        data: [],
-        backgroundColor: "rgba(75, 192, 192, 0.5)",
-      },
-    ],
-  },
-  seasonalTrends: {
-    labels: [],
-    datasets: [
-      {
-        label: "Monthly Sales",
-        data: [],
-        borderColor: "rgb(153, 102, 255)",
-        tension: 0.1,
-      },
-    ],
-  },
-  lowStockProducts: [],
-  dashboardStats: {
-    todayTransactions: 0,
-    todayRevenue: 0,
-    activeUsers: 0,
-    lowStockItems: 0,
-    totalProducts: 0,
-    totalSales: 0,
-  },
-  insights: {
-    loading: false,
-    error: null,
-    data: null,
-  },
-};
+// Async thunks
+export const fetchRangeStats = createAsyncThunk(
+  "analytics/fetchRangeStats",
+  async (range) => {
+    const response = await api.get(`/analytics/range-stats?range=${range}`);
+    return response.data;
+  }
+);
 
-// Async thunks for fetching different types of analytics data
 export const fetchSalesTrends = createAsyncThunk(
   "analytics/fetchSalesTrends",
-  async (timeFrame) => {
-    const response = await api.get(
-      `/analytics/sales-trends?timeFrame=${timeFrame}`
-    );
+  async (range) => {
+    const response = await api.get(`/analytics/sales-trends?range=${range}`);
     return response.data;
   }
 );
 
 export const fetchTopProducts = createAsyncThunk(
   "analytics/fetchTopProducts",
-  async () => {
-    const response = await api.get("/analytics/top-products");
-    return response.data;
-  }
-);
-
-export const fetchSeasonalTrends = createAsyncThunk(
-  "analytics/fetchSeasonalTrends",
-  async () => {
-    const response = await api.get("/analytics/seasonal-trends");
-    return response.data;
-  }
-);
-
-export const fetchLowStockAlerts = createAsyncThunk(
-  "analytics/fetchLowStockAlerts",
-  async () => {
-    const response = await api.get("/analytics/low-stock");
-    return response.data;
-  }
-);
-
-export const fetchDashboardStats = createAsyncThunk(
-  "analytics/fetchDashboardStats",
-  async () => {
-    const response = await api.get("/analytics/dashboard-stats");
+  async (range) => {
+    const response = await api.get(`/analytics/top-products?range=${range}`);
     return response.data;
   }
 );
 
 export const generateAIInsights = createAsyncThunk(
   "analytics/generateInsights",
-  async (_, { getState }) => {
-    const state = getState();
-    const analyticsData = {
-      salesTrends: state.analytics.salesTrends,
-      topProducts: state.analytics.topProducts,
-      seasonalTrends: state.analytics.seasonalTrends,
-      dashboardStats: state.analytics.dashboardStats,
-    };
-
-    const insights = await openaiService.generateInsights(analyticsData);
+  async (data) => {
+    const insights = await openaiService.generateInsights(data);
     return insights;
   }
 );
+
+const initialState = {
+  selectedRange: "day",
+  rangeStats: {
+    data: null,
+    loading: false,
+    error: null,
+  },
+  salesTrends: {
+    data: null,
+    loading: false,
+    error: null,
+  },
+  topProducts: {
+    data: null,
+    loading: false,
+    error: null,
+  },
+  insights: {
+    data: null,
+    loading: false,
+    error: null,
+  },
+};
 
 const analyticsSlice = createSlice({
   name: "analytics",
   initialState,
   reducers: {
     setDateRange: (state, action) => {
-      state.dateRange = action.payload;
+      state.selectedRange = action.payload;
     },
   },
   extraReducers: (builder) => {
-    // Sales Trends
     builder
+      // Range Stats
+      .addCase(fetchRangeStats.pending, (state) => {
+        state.rangeStats.loading = true;
+        state.rangeStats.error = null;
+      })
+      .addCase(fetchRangeStats.fulfilled, (state, action) => {
+        state.rangeStats.loading = false;
+        state.rangeStats.data = action.payload;
+      })
+      .addCase(fetchRangeStats.rejected, (state, action) => {
+        state.rangeStats.loading = false;
+        state.rangeStats.error = action.error.message;
+      })
+      // Sales Trends
       .addCase(fetchSalesTrends.pending, (state) => {
-        state.loading = true;
+        state.salesTrends.loading = true;
+        state.salesTrends.error = null;
       })
       .addCase(fetchSalesTrends.fulfilled, (state, action) => {
-        state.loading = false;
-        state.salesTrends = action.payload;
+        state.salesTrends.loading = false;
+        state.salesTrends.data = action.payload;
       })
       .addCase(fetchSalesTrends.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
+        state.salesTrends.loading = false;
+        state.salesTrends.error = action.error.message;
       })
       // Top Products
+      .addCase(fetchTopProducts.pending, (state) => {
+        state.topProducts.loading = true;
+        state.topProducts.error = null;
+      })
       .addCase(fetchTopProducts.fulfilled, (state, action) => {
-        state.topProducts = action.payload;
+        state.topProducts.loading = false;
+        state.topProducts.data = action.payload;
       })
-      // Seasonal Trends
-      .addCase(fetchSeasonalTrends.fulfilled, (state, action) => {
-        state.seasonalTrends = action.payload;
-      })
-      // Low Stock Alerts
-      .addCase(fetchLowStockAlerts.fulfilled, (state, action) => {
-        state.lowStockProducts = action.payload;
-      })
-      // Dashboard Stats
-      .addCase(fetchDashboardStats.fulfilled, (state, action) => {
-        state.dashboardStats = action.payload;
+      .addCase(fetchTopProducts.rejected, (state, action) => {
+        state.topProducts.loading = false;
+        state.topProducts.error = action.error.message;
       })
       // AI Insights
       .addCase(generateAIInsights.pending, (state) => {
@@ -174,19 +124,14 @@ const analyticsSlice = createSlice({
   },
 });
 
+// Actions
 export const { setDateRange } = analyticsSlice.actions;
 
 // Selectors
-export const selectAnalyticsState = (state) => state.analytics;
-export const selectDateRange = (state) => state.analytics.dateRange;
+export const selectSelectedRange = (state) => state.analytics.selectedRange;
+export const selectRangeStats = (state) => state.analytics.rangeStats;
 export const selectSalesTrends = (state) => state.analytics.salesTrends;
 export const selectTopProducts = (state) => state.analytics.topProducts;
-export const selectSeasonalTrends = (state) => state.analytics.seasonalTrends;
-export const selectLowStockProducts = (state) =>
-  state.analytics.lowStockProducts;
-export const selectDashboardStats = (state) => state.analytics.dashboardStats;
-export const selectAnalyticsLoading = (state) => state.analytics.loading;
-export const selectAnalyticsError = (state) => state.analytics.error;
 export const selectInsights = (state) => state.analytics.insights;
 
 export default analyticsSlice.reducer;

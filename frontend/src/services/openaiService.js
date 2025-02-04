@@ -9,8 +9,9 @@ const openai = new OpenAI({
 const generateInsights = async (analyticsData) => {
   try {
     const prompt = `
-      As a business analytics expert for a Nigerian retail business, analyze this POS data and provide key insights.
-      All monetary values are in Nigerian Naira (NGN/₦).
+      As a business analytics expert, analyze this POS data for the ${
+        analyticsData.selectedRange
+      } period and provide key insights:
       
       Sales Trends: ${JSON.stringify(analyticsData.salesTrends)}
       Top Products: ${JSON.stringify(analyticsData.topProducts)}
@@ -18,18 +19,19 @@ const generateInsights = async (analyticsData) => {
       Dashboard Stats: ${JSON.stringify(analyticsData.dashboardStats)}
       
       Please provide:
-      1. Key performance insights (using Naira/₦ for all monetary values)
-      2. Notable trends
-      3. Actionable recommendations for the Nigerian market
+      1. Key performance insights for this ${analyticsData.selectedRange}
+      2. Notable trends compared to previous periods
+      3. Actionable recommendations based on this timeframe
       4. Areas of concern
-      
-      Keep the analysis concise, business-focused, and relevant to the Nigerian retail context.
-      Always use ₦ or Naira when referring to monetary values.
+      Keep the analysis concise, business-focused, and relevant to the ${
+        analyticsData.selectedRange
+      } period.
+      All monetary values are in Nigerian Naira (₦).
     `;
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "gpt-4o-mini",
+      model: "gpt-3.5-turbo",
       temperature: 0.7,
       max_tokens: 1000,
     });
