@@ -1,11 +1,22 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchAnalyticsData,
-  selectAnalyticsData,
   selectAnalyticsLoading,
   selectAnalyticsError,
   setDateRange,
+  fetchSalesTrends,
+  fetchTopProducts,
+  fetchSeasonalTrends,
+  fetchLowStockAlerts,
+  fetchDashboardStats,
+  selectDateRange,
+  selectSalesTrends,
+  selectTopProducts,
+  selectSeasonalTrends,
+  selectLowStockProducts,
+  selectDashboardStats,
+  selectInsights,
+  generateAIInsights,
 } from "../store/slices/analyticsSlice";
 import {
   Chart as ChartJS,
@@ -26,6 +37,8 @@ import {
   TrendingUpIcon,
   UserGroupIcon,
 } from "@heroicons/react/outline";
+import { formatCurrency } from "../utils/formatCurrency.js";
+import MarkdownRenderer from "../components/MarkdownRenderer";
 
 ChartJS.register(
   CategoryScale,
@@ -41,14 +54,37 @@ ChartJS.register(
 
 const Analytics = () => {
   const dispatch = useDispatch();
-  const data = useSelector(selectAnalyticsData);
+  const dateRange = useSelector(selectDateRange);
+  const salesTrends = useSelector(selectSalesTrends);
+  const topProducts = useSelector(selectTopProducts);
+  const seasonalTrends = useSelector(selectSeasonalTrends);
+  const lowStockProducts = useSelector(selectLowStockProducts);
+  const dashboardStats = useSelector(selectDashboardStats);
   const loading = useSelector(selectAnalyticsLoading);
   const error = useSelector(selectAnalyticsError);
+  const insights = useSelector(selectInsights);
   const [selectedRange, setSelectedRange] = useState("week");
 
-  useEffect(() => {
-    dispatch(fetchAnalyticsData(selectedRange));
-  }, [dispatch, selectedRange]);
+  useEffect(
+    () => {
+      dispatch(fetchSalesTrends(dateRange));
+      dispatch(fetchTopProducts());
+      dispatch(fetchSeasonalTrends());
+      dispatch(fetchLowStockAlerts());
+      dispatch(fetchDashboardStats());
+      if (salesTrends && topProducts && seasonalTrends && dashboardStats) {
+        // dispatch(generateAIInsights());
+      }
+    },
+    [
+      // dispatch,
+      // dateRange,
+      // salesTrends,
+      // topProducts,
+      // seasonalTrends,
+      // dashboardStats,
+    ]
+  );
 
   const handleRangeChange = (range) => {
     setSelectedRange(range);
@@ -73,32 +109,24 @@ const Analytics = () => {
 
   const stats = [
     {
-      name: "Total Sales",
-      value: `$${data.totalSales.toFixed(2)}`,
-      icon: CashIcon,
-      change: "+12%",
-      changeType: "increase",
-    },
-    {
-      name: "Total Orders",
-      value: data.totalOrders,
+      name: "Today's Transactions",
+      value: dashboardStats.todayTransactions || 0,
       icon: ShoppingCartIcon,
-      change: "+8%",
-      changeType: "increase",
     },
     {
-      name: "Average Order Value",
-      value: `$${data.averageOrderValue.toFixed(2)}`,
-      icon: TrendingUpIcon,
-      change: "+3%",
-      changeType: "increase",
+      name: "Today's Revenue",
+      value: formatCurrency(dashboardStats.todayRevenue || 0),
+      icon: CashIcon,
     },
     {
-      name: "Total Products Sold",
-      value: data.totalProductsSold,
+      name: "Active Users",
+      value: dashboardStats.activeUsers || 0,
       icon: UserGroupIcon,
-      change: "+5%",
-      changeType: "increase",
+    },
+    {
+      name: "Low Stock Items",
+      value: dashboardStats.lowStockItems || 0,
+      icon: TrendingUpIcon,
     },
   ];
 
@@ -114,6 +142,61 @@ const Analytics = () => {
       },
     ],
   };
+
+  const renderInsights = () => (
+    <div className="col-span-2 bg-white p-6 rounded-lg shadow">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">AI-Generated Insights</h2>
+        <button
+          onClick={() => dispatch(generateAIInsights())}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          disabled={insights.loading}
+        >
+          {insights.loading ? (
+            <span className="flex items-center">
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Generating...
+            </span>
+          ) : (
+            "Refresh Insights"
+          )}
+        </button>
+      </div>
+
+      {insights.error ? (
+        <div className="text-red-500 p-4 bg-red-50 rounded-md">
+          Error generating insights: {insights.error}
+        </div>
+      ) : insights.data ? (
+        <div className="prose max-w-none">
+          <MarkdownRenderer content={insights.data} />
+        </div>
+      ) : (
+        <div className="text-gray-500 text-center py-8">
+          Click &quot;Refresh Insights&quot; to generate AI analysis
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="p-6">
@@ -161,15 +244,6 @@ const Analytics = () => {
                       <div className="text-2xl font-semibold text-gray-900">
                         {stat.value}
                       </div>
-                      <div
-                        className={`ml-2 flex items-baseline text-sm font-semibold ${
-                          stat.changeType === "increase"
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {stat.change}
-                      </div>
                     </dd>
                   </dl>
                 </div>
@@ -185,7 +259,7 @@ const Analytics = () => {
           <h2 className="text-lg font-semibold mb-4">Sales Trend</h2>
           <div className="h-80">
             <Line
-              data={data?.salesTrend || defaultChartData}
+              data={salesTrends || defaultChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -209,7 +283,7 @@ const Analytics = () => {
           <h2 className="text-lg font-semibold mb-4">Top Products</h2>
           <div className="h-80">
             <Bar
-              data={data?.topProducts || defaultChartData}
+              data={topProducts || defaultChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -229,7 +303,7 @@ const Analytics = () => {
           <div className="h-80">
             <Doughnut
               data={
-                data?.paymentMethods || {
+                seasonalTrends || {
                   labels: ["No Data"],
                   datasets: [
                     {
@@ -271,7 +345,7 @@ const Analytics = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data?.lowStockProducts?.map((product) => (
+                {lowStockProducts?.map((product) => (
                   <tr key={product.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -301,6 +375,9 @@ const Analytics = () => {
           </div>
         </div>
       </div>
+
+      {/* Add insights section */}
+      <div className="mt-6">{renderInsights()}</div>
     </div>
   );
 };

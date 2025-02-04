@@ -10,6 +10,7 @@ import {
   MenuIcon,
   XIcon,
   LogoutIcon,
+  ClockIcon,
 } from "@heroicons/react/outline";
 import PropTypes from "prop-types";
 import Scanner from "./Scanner";
@@ -27,13 +28,25 @@ const Layout = ({ children }) => {
     navigate("/login");
   };
 
-  const navItems = [
-    { path: "/dashboard", name: "Dashboard", icon: HomeIcon },
-    { path: "/products", name: "Products", icon: ShoppingCartIcon },
-    { path: "/transactions", name: "Transactions", icon: ChartBarIcon },
-    { path: "/analytics", name: "Analytics", icon: ChartBarIcon },
-    { path: "/users", name: "Users", icon: UsersIcon },
-  ];
+  const getNavItems = () => {
+    const adminItems = [
+      { path: "/dashboard", name: "Dashboard", icon: HomeIcon },
+      { path: "/products", name: "Products", icon: ShoppingCartIcon },
+      { path: "/transactions", name: "Transactions", icon: ChartBarIcon },
+      { path: "/analytics", name: "Analytics", icon: ChartBarIcon },
+      { path: "/users", name: "Users", icon: UsersIcon },
+      { path: "/transaction-history", name: "History", icon: ClockIcon },
+    ];
+
+    const cashierItems = [
+      { path: "/transaction-history", name: "History", icon: ClockIcon },
+      { path: "/transactions", name: "Transactions", icon: ChartBarIcon },
+    ];
+
+    return user?.role === "admin" ? adminItems : cashierItems;
+  };
+
+  const navItems = getNavItems();
 
   const isActivePath = (path) => location.pathname === path;
 

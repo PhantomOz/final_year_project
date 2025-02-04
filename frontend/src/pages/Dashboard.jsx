@@ -1,6 +1,10 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchAnalyticsData } from "../store/slices/analyticsSlice";
+import {
+  fetchSalesTrends,
+  fetchTopProducts,
+  fetchDashboardStats,
+} from "../store/slices/analyticsSlice";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,6 +17,14 @@ import {
   Legend,
 } from "chart.js";
 import { Line, Bar } from "react-chartjs-2";
+import {
+  selectSalesTrends,
+  selectTopProducts,
+  selectDashboardStats,
+  selectAnalyticsLoading,
+  selectAnalyticsError,
+} from "../store/slices/analyticsSlice";
+import { formatCurrency } from "../utils/formatCurrency.js";
 
 ChartJS.register(
   CategoryScale,
@@ -27,20 +39,26 @@ ChartJS.register(
 
 const Dashboard = () => {
   const dispatch = useDispatch();
-  const { salesData, topProducts, kpiData, loading, error } = useSelector(
-    (state) => state.analytics
-  );
+  const salesTrends = useSelector(selectSalesTrends);
+  const topProducts = useSelector(selectTopProducts);
+  const dashboardStats = useSelector(selectDashboardStats);
+  const loading = useSelector(selectAnalyticsLoading);
+  const error = useSelector(selectAnalyticsError);
 
   useEffect(() => {
-    dispatch(fetchAnalyticsData("week"));
+    dispatch(fetchSalesTrends("daily"));
+    dispatch(fetchTopProducts());
+    dispatch(fetchDashboardStats());
   }, [dispatch]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  console.log(dashboardStats);
+
   // Ensure data exists before rendering charts
   const canRenderCharts =
-    salesData?.labels?.length > 0 && topProducts?.labels?.length > 0;
+    salesTrends?.labels?.length > 0 && topProducts?.labels?.length > 0;
 
   return (
     <div className="p-6">
@@ -51,19 +69,19 @@ const Dashboard = () => {
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">Total Sales</h3>
           <p className="text-2xl font-bold">
-            ${kpiData?.totalSales?.toLocaleString() || "0"}
+            {formatCurrency(dashboardStats?.totalSales || 0)}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">Total Products</h3>
           <p className="text-2xl font-bold">
-            {kpiData?.totalProducts?.toLocaleString() || "0"}
+            {(dashboardStats?.totalProducts || 0).toLocaleString()}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-gray-500 text-sm">Low Stock Items</h3>
           <p className="text-2xl font-bold">
-            {kpiData?.lowStockItems?.toLocaleString() || "0"}
+            {(dashboardStats?.lowStockItems || 0).toLocaleString()}
           </p>
         </div>
       </div>
@@ -74,7 +92,7 @@ const Dashboard = () => {
           <div className="bg-white p-4 rounded-lg shadow">
             <h2 className="text-lg font-semibold mb-4">Sales Overview</h2>
             <Line
-              data={salesData}
+              data={salesTrends}
               options={{
                 responsive: true,
                 plugins: {

@@ -6,6 +6,7 @@ import productReducer from "./slices/productSlice";
 import transactionReducer from "./slices/transactionSlice";
 import analyticsReducer from "./slices/analyticsSlice";
 import scannerReducer from "./slices/scannerSlice";
+import userReducer from "./slices/userSlice";
 
 const persistConfig = {
   key: "root",
@@ -20,6 +21,7 @@ export const store = configureStore({
     auth: persistedAuthReducer,
     products: productReducer,
     transactions: transactionReducer,
+    users: userReducer,
     analytics: analyticsReducer,
     scanner: scannerReducer,
   },

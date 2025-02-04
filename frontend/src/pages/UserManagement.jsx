@@ -31,7 +31,6 @@ const UserManagement = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [formData, setFormData] = useState({
     username: "",
-    email: "",
     role: "cashier",
     password: "",
     confirmPassword: "",
@@ -50,7 +49,6 @@ const UserManagement = () => {
     setCurrentUser(null);
     setFormData({
       username: "",
-      email: "",
       role: "cashier",
       password: "",
       confirmPassword: "",
@@ -74,7 +72,6 @@ const UserManagement = () => {
         await handleUpdateUser({
           id: currentUser.id,
           username: formData.username,
-          email: formData.email,
           role: formData.role,
         });
       } else {
@@ -138,9 +135,6 @@ const UserManagement = () => {
                   Username
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -155,9 +149,6 @@ const UserManagement = () => {
                     <div className="text-sm font-medium text-gray-900">
                       {user.username}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{user.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -176,7 +167,6 @@ const UserManagement = () => {
                         setCurrentUser(user);
                         setFormData({
                           username: user.username,
-                          email: user.email,
                           role: user.role,
                           password: "",
                           confirmPassword: "",
@@ -230,21 +220,6 @@ const UserManagement = () => {
                     value={formData.username}
                     onChange={(e) =>
                       setFormData({ ...formData, username: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
                     }
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     required

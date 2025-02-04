@@ -1,51 +1,57 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 import { useNotification } from "../../context/NotificationContext";
+import { useDispatch } from "react-redux";
+
+const initialState = {
+  users: [],
+  loading: false,
+  error: null,
+  currentUser: null,
+  selectedUser: null,
+};
 
 // Async thunks
-export const fetchUsers = createAsyncThunk("users/fetchAll", async () => {
+export const fetchUsers = createAsyncThunk("users/fetchUsers", async () => {
   const response = await api.get("/users");
   return response.data;
 });
 
-export const createUser = createAsyncThunk("users/create", async (userData) => {
-  const response = await api.post("/users/register", userData);
-  return response.data;
-});
+export const createUser = createAsyncThunk(
+  "users/createUser",
+  async (userData) => {
+    const response = await api.post("/users/register", userData);
+    return response.data;
+  }
+);
 
 export const updateUser = createAsyncThunk(
-  "users/update",
-  async ({ id, ...userData }) => {
+  "users/updateUser",
+  async ({ id, userData }) => {
     const response = await api.put(`/users/${id}`, userData);
     return response.data;
   }
 );
 
-export const deleteUser = createAsyncThunk("users/delete", async (id) => {
+export const deleteUser = createAsyncThunk("users/deleteUser", async (id) => {
   await api.delete(`/users/${id}`);
   return id;
 });
 
 export const changePassword = createAsyncThunk(
   "users/changePassword",
-  async ({ id, currentPassword, newPassword }) => {
-    const response = await api.post(`/users/${id}/change-password`, {
-      currentPassword,
-      newPassword,
-    });
+  async ({ id, passwordData }) => {
+    const response = await api.post(
+      `/users/${id}/change-password`,
+      passwordData
+    );
     return response.data;
   }
 );
 
 const userSlice = createSlice({
   name: "users",
-  initialState: {
-    users: [],
-    loading: false,
-    error: null,
-    currentUser: null,
-    selectedUser: null,
-  },
+  initialState,
   reducers: {
     setSelectedUser: (state, action) => {
       state.selectedUser = action.payload;
@@ -144,10 +150,11 @@ export const { setSelectedUser, clearError } = userSlice.actions;
 // Custom hook for user operations with notifications
 export const useUserOperations = () => {
   const { showNotification } = useNotification();
+  const dispatch = useDispatch();
 
   const handleUserOperation = async (operation, ...args) => {
     try {
-      await operation(...args);
+      await dispatch(operation(...args));
       showNotification("success", "Operation completed successfully");
     } catch (error) {
       showNotification("error", error.message || "Operation failed");
