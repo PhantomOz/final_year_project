@@ -6,7 +6,11 @@ import openaiService from "../../services/openaiService";
 export const fetchRangeStats = createAsyncThunk(
   "analytics/fetchRangeStats",
   async (range) => {
-    const response = await api.get(`/analytics/range-stats?range=${range}`);
+    const params =
+      typeof range === "object"
+        ? `startDate=${range.startDate}&endDate=${range.endDate}`
+        : `range=${range}`;
+    const response = await api.get(`/analytics/range-stats?${params}`);
     return response.data;
   }
 );
@@ -14,7 +18,11 @@ export const fetchRangeStats = createAsyncThunk(
 export const fetchSalesTrends = createAsyncThunk(
   "analytics/fetchSalesTrends",
   async (range) => {
-    const response = await api.get(`/analytics/sales-trends?range=${range}`);
+    const params =
+      typeof range === "object"
+        ? `startDate=${range.startDate}&endDate=${range.endDate}`
+        : `range=${range}`;
+    const response = await api.get(`/analytics/sales-trends?${params}`);
     return response.data;
   }
 );
@@ -22,7 +30,11 @@ export const fetchSalesTrends = createAsyncThunk(
 export const fetchTopProducts = createAsyncThunk(
   "analytics/fetchTopProducts",
   async (range) => {
-    const response = await api.get(`/analytics/top-products?range=${range}`);
+    const params =
+      typeof range === "object"
+        ? `startDate=${range.startDate}&endDate=${range.endDate}`
+        : `range=${range}`;
+    const response = await api.get(`/analytics/top-products?${params}`);
     return response.data;
   }
 );
@@ -32,6 +44,15 @@ export const generateAIInsights = createAsyncThunk(
   async (data) => {
     const insights = await openaiService.generateInsights(data);
     return insights;
+  }
+);
+
+export const analyzeUploadedData = createAsyncThunk(
+  "analytics/analyzeUploadedData",
+  async (data) => {
+    const response = await api.post("/analytics/analyze-upload", data);
+    console.log(response.data);
+    return response.data;
   }
 );
 
@@ -53,6 +74,11 @@ const initialState = {
     error: null,
   },
   insights: {
+    data: null,
+    loading: false,
+    error: null,
+  },
+  uploadedDataAnalysis: {
     data: null,
     loading: false,
     error: null,
@@ -120,6 +146,18 @@ const analyticsSlice = createSlice({
       .addCase(generateAIInsights.rejected, (state, action) => {
         state.insights.loading = false;
         state.insights.error = action.error.message;
+      })
+      .addCase(analyzeUploadedData.pending, (state) => {
+        state.uploadedDataAnalysis.loading = true;
+        state.uploadedDataAnalysis.error = null;
+      })
+      .addCase(analyzeUploadedData.fulfilled, (state, action) => {
+        state.uploadedDataAnalysis.loading = false;
+        state.uploadedDataAnalysis.data = action.payload;
+      })
+      .addCase(analyzeUploadedData.rejected, (state, action) => {
+        state.uploadedDataAnalysis.loading = false;
+        state.uploadedDataAnalysis.error = action.error.message;
       });
   },
 });
@@ -133,5 +171,7 @@ export const selectRangeStats = (state) => state.analytics.rangeStats;
 export const selectSalesTrends = (state) => state.analytics.salesTrends;
 export const selectTopProducts = (state) => state.analytics.topProducts;
 export const selectInsights = (state) => state.analytics.insights;
+export const selectUploadedDataAnalysis = (state) =>
+  state.analytics.uploadedDataAnalysis;
 
 export default analyticsSlice.reducer;

@@ -2,6 +2,13 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  // Add timeout and max content size configurations
+  timeout: 30000, // 30 seconds
+  maxContentLength: 10000000, // 10MB
+  maxBodyLength: 10000000, // 10MB
 });
 
 // Add token to requests
