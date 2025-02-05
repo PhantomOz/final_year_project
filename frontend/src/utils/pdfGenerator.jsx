@@ -279,6 +279,17 @@ MarkdownRenderer.propTypes = {
   content: PropTypes.string,
 };
 
+// Helper function to convert Excel date number to readable date
+const formatExcelDate = (excelDate) => {
+  // Excel dates are number of days since December 30, 1899
+  const date = new Date((excelDate - 25569) * 86400 * 1000);
+  return date.toLocaleDateString("en-NG", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 // Create Document Component
 export const AnalyticsReport = ({
   rangeStats,
@@ -346,15 +357,18 @@ export const AnalyticsReport = ({
           </View>
           {(isCustomData && monthlyTrends
             ? monthlyTrends
+            : isCustomData && salesTrends
+            ? salesTrends.map((trend) => ({
+                date: formatExcelDate(parseFloat(trend.date)),
+                amount: trend.amount,
+              }))
             : salesTrends?.labels?.map((label, index) => ({
                 date: label,
                 amount: salesTrends.datasets[0].data[index],
               })) || []
           ).map((trend, index) => (
             <View style={styles.tableRow} key={index}>
-              <Text style={styles.tableCell}>
-                {isCustomData ? trend.month : trend.date}
-              </Text>
+              <Text style={styles.tableCell}>{trend.date}</Text>
               <Text style={styles.tableCell}>
                 {formatPDFCurrency(trend.amount)}
               </Text>

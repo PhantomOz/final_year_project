@@ -47,6 +47,17 @@ ChartJS.register(
   Legend
 );
 
+// Helper function to convert Excel date number to readable date
+const formatExcelDate = (excelDate) => {
+  // Excel dates are number of days since December 30, 1899
+  const date = new Date((excelDate - 25569) * 86400 * 1000);
+  return date.toLocaleDateString("en-NG", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 const Analytics = () => {
   const dispatch = useDispatch();
   const { sendMessage } = useChat();
@@ -403,14 +414,143 @@ const Analytics = () => {
 
   const handleAnalysisComplete = async (analysisResult) => {
     try {
-      const insights = await generateAIInsights(analysisResult);
-      setCustomAnalysis({
+      // Format dates in sales trends
+      const formattedAnalysis = {
         ...analysisResult,
+        salesTrends: analysisResult.salesTrends.map((trend) => ({
+          ...trend,
+          date: formatExcelDate(parseFloat(trend.date)),
+        })),
+      };
+
+      const insights = await generateAIInsights(formattedAnalysis);
+      setCustomAnalysis({
+        ...formattedAnalysis,
         insights,
       });
     } catch (error) {
       console.error("Error in analysis completion:", error);
     }
+  };
+
+  // Chart data preparation
+  const chartData = {
+    labels: customAnalysis
+      ? customAnalysis.salesTrends.map((trend) => trend.date)
+      : salesTrends?.labels || [],
+    datasets: [
+      {
+        label: "Sales Amount",
+        data: customAnalysis
+          ? customAnalysis.salesTrends.map((trend) => trend.amount)
+          : salesTrends?.datasets[0].data || [],
+        borderColor: "rgb(75, 192, 192)",
+        tension: 0.1,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top",
+      },
+      title: {
+        display: true,
+        text: customAnalysis
+          ? "Custom Sales Trends"
+          : `${getDateRangeLabel(selectedRange)} Sales Trends`,
+      },
+    },
+    scales: {
+      x: {
+        display: true,
+        title: {
+          display: true,
+          text: "Date",
+        },
+      },
+      y: {
+        display: true,
+        title: {
+          display: true,
+          text: "Amount (₦)",
+        },
+        ticks: {
+          callback: function (value) {
+            return formatCurrency(value);
+          },
+        },
+      },
+    },
+    interaction: {
+      intersect: false,
+      mode: "index",
+    },
+    tooltips: {
+      callbacks: {
+        label: function (context) {
+          return `Amount: ${formatCurrency(context.parsed.y)}`;
+        },
+      },
+    },
+  };
+
+  // Top products chart data
+  const topProductsChartData = {
+    labels: customAnalysis
+      ? customAnalysis.topProducts.map((product) => product.product)
+      : topProducts?.labels || [],
+    datasets: [
+      {
+        label: "Revenue",
+        data: customAnalysis
+          ? customAnalysis.topProducts.map((product) => product.amount)
+          : topProducts?.datasets[0].data || [],
+        backgroundColor: "rgba(75, 192, 192, 0.5)",
+        borderColor: "rgb(75, 192, 192)",
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const topProductsChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top",
+      },
+      title: {
+        display: true,
+        text: "Top Products by Revenue",
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Revenue (₦)",
+        },
+        ticks: {
+          callback: function (value) {
+            return formatCurrency(value);
+          },
+        },
+      },
+    },
+    interaction: {
+      intersect: false,
+      mode: "index",
+    },
+    tooltips: {
+      callbacks: {
+        label: function (context) {
+          return `Revenue: ${formatCurrency(context.parsed.y)}`;
+        },
+      },
+    },
   };
 
   if (statsLoading || trendsLoading || productsLoading) {
@@ -631,117 +771,14 @@ const Analytics = () => {
         )}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {customAnalysis ? (
-          <>
-            {/* Sales Trends Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Sales Trends</h2>
-              <div className="h-80">
-                <Line
-                  data={{
-                    labels: customAnalysis.salesTrends.map(
-                      (trend) => trend.date
-                    ),
-                    datasets: [
-                      {
-                        label: "Sales",
-                        data: customAnalysis.salesTrends.map(
-                          (trend) => trend.amount
-                        ),
-                        fill: false,
-                        borderColor: "rgb(75, 192, 192)",
-                        tension: 0.1,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Top Products Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Top Products</h2>
-              <div className="h-80">
-                <Bar
-                  data={{
-                    labels: customAnalysis.topProducts.map(
-                      (product) => product.product
-                    ),
-                    datasets: [
-                      {
-                        label: "Revenue",
-                        data: customAnalysis.topProducts.map(
-                          (product) => product.amount
-                        ),
-                        backgroundColor: "rgba(75, 192, 192, 0.5)",
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Sales Trends Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Sales Trends</h2>
-              <div className="h-80" id="salesTrendsChart">
-                <Line
-                  data={salesTrends || { labels: [], datasets: [] }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Top Products Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Top Products</h2>
-              <div className="h-80" id="topProductsChart">
-                <Bar
-                  data={topProducts || { labels: [], datasets: [] }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: "top",
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        )}
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <Line data={chartData} options={chartOptions} />
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <Bar data={topProductsChartData} options={topProductsChartOptions} />
+        </div>
       </div>
 
       {/* AI Insights */}
