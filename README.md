@@ -266,7 +266,7 @@ flowchart TD
     L -->|Manual| M[Single Product Entry]
     L -->|Bulk| N[CSV Import]
     
-    M --> O[Generate QR Codes]
+    M --> O[Generate Barcode]
     N --> O
     
     O --> P[Initial Stock Count]
@@ -279,34 +279,24 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[Start Transaction] --> B[Open Scanner]
-    B --> C[Scan QR Code]
+    B --> C[Scan Barcode]
     
     C --> D{Valid Code?}
     D -->|No| E[Error Message]
     E --> B
     
     D -->|Yes| F[Product Details]
-    F --> G[Select Action]
+    F --> G[Enter Quantity]
+    G --> H[Confirm Transaction]
     
-    G --> H[Stock In]
-    G --> I[Stock Out]
-    G --> J[Stock Count]
+    H --> I[Update Inventory]
+    I --> J[Generate Receipt]
+    J --> K[Transaction Complete]
     
-    H --> K[Enter Quantity]
-    I --> K
-    J --> K
-    
-    K --> L[Add Notes]
-    L --> M[Confirm Transaction]
-    
-    M --> N[Update Inventory]
-    N --> O[Generate Receipt]
-    O --> P[Transaction Complete]
-    
-    N --> Q[Update Analytics]
-    N --> R[Check Stock Levels]
-    R --> S{Below Threshold?}
-    S -->|Yes| T[Send Alert]
+    K --> L[Update Analytics]
+    L --> M[Check Stock Levels]
+    M --> N{Below Threshold?}
+    N -->|Yes| O[Send Alert]
 ```
 
 ### Analytics Generation Flow
