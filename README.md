@@ -339,29 +339,3 @@ flowchart TD
     N --> P[Download Report]
 ```
 
-These flow charts illustrate:
-1. User authentication and navigation paths
-2. Complete onboarding process
-3. Transaction handling
-4. Analytics generation process
-
-Key features shown:
-- User authentication flow
-- Product management
-- QR code scanning process
-- Transaction recording
-- Analytics generation
-- Report creation
-- Alert system
-- Data validation steps
-- Export functionality
-
-The diagrams help visualize:
-1. System processes
-2. Decision points
-3. Data flow
-4. User interactions
-5. System responses
-6. Error handling
-7. Completion paths
-8. Integration points
