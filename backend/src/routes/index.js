@@ -138,5 +138,10 @@ router.get(
   isAdmin,
   analyticsController.getDetailedStats
 );
+router.post(
+  "/analytics/analyze-upload",
+  authMiddleware,
+  analyticsController.analyzeTransactionData
+);
 
 module.exports = router;

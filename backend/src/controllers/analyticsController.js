@@ -30,6 +30,96 @@ const getTimeGrouping = (range) => {
   }
 };
 
+const formatCurrency = (value) => {
+  return `₦${value.toFixed(2)}`;
+};
+
+const generateInsightsFromAnalysis = (analysis) => {
+  const insights = [];
+
+  // Revenue insights
+  insights.push(`Total revenue: ${formatCurrency(analysis.totalRevenue)}`);
+  insights.push(
+    `Average transaction value: ${formatCurrency(
+      analysis.averageTransactionValue
+    )}`
+  );
+
+  // Monthly trends insights
+  if (analysis.monthlyTrends && analysis.monthlyTrends.length > 1) {
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const highestMonth = analysis.monthlyTrends.reduce((max, current) =>
+      current.amount > max.amount ? current : max
+    );
+
+    const monthName =
+      monthNames[parseInt(highestMonth.month.split("-")[1]) - 1];
+    insights.push(
+      `Highest revenue month: ${monthName} (${formatCurrency(
+        highestMonth.amount
+      )})`
+    );
+  }
+
+  // Top products insight
+  if (analysis.topProducts.length > 0) {
+    const topProduct = analysis.topProducts[0];
+    insights.push(
+      `Best-selling product: ${topProduct.product} (${formatCurrency(
+        topProduct.amount
+      )})`
+    );
+  }
+
+  // Time-based insights
+  const busyHour = analysis.timeAnalysis.hourly.indexOf(
+    Math.max(...analysis.timeAnalysis.hourly)
+  );
+  insights.push(`Peak business hour: ${busyHour}:00`);
+
+  const daysOfWeek = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const busiestDay = analysis.timeAnalysis.daily.indexOf(
+    Math.max(...analysis.timeAnalysis.daily)
+  );
+  insights.push(`Busiest day of the week: ${daysOfWeek[busiestDay]}`);
+
+  // Growth trend insights
+  if (analysis.monthlyTrends && analysis.monthlyTrends.length > 1) {
+    const firstMonth = analysis.monthlyTrends[0].amount;
+    const lastMonth =
+      analysis.monthlyTrends[analysis.monthlyTrends.length - 1].amount;
+    const growthRate = ((lastMonth - firstMonth) / firstMonth) * 100;
+
+    if (!isNaN(growthRate)) {
+      insights.push(`Monthly growth rate: ${growthRate.toFixed(1)}%`);
+    }
+  }
+
+  return insights.join("\n");
+};
+
 const analyticsController = {
   async getRangeStats(req, res) {
     try {
@@ -333,6 +423,124 @@ const analyticsController = {
   formatDate(date, range) {
     // Implement date formatting logic based on the range
     return date.toISOString().split("T")[0]; // Placeholder, actual implementation needed
+  },
+
+  async analyzeTransactionData(req, res) {
+    try {
+      const uploadedData = req.body;
+
+      // Basic validation
+      if (!Array.isArray(uploadedData) || uploadedData.length === 0) {
+        return res.status(400).json({ message: "Invalid data format" });
+      }
+
+      // Initialize analysis results
+      const analysis = {
+        totalTransactions: uploadedData.length,
+        totalRevenue: 0,
+        averageTransactionValue: 0,
+        salesByDate: {},
+        topProducts: {},
+        salesTrends: [],
+        timeAnalysis: {
+          hourly: Array(24).fill(0),
+          daily: Array(7).fill(0),
+          monthly: Array(12).fill(0),
+        },
+      };
+
+      // Process each transaction
+      uploadedData.forEach((transaction) => {
+        // Ensure proper date parsing
+        const dateStr = transaction.transaction_date;
+        const date = new Date(dateStr + "T00:00:00"); // Add time component for consistent parsing
+
+        // Use the amount directly from the CSV as it's pre-calculated
+        const amount = parseFloat(transaction.amount);
+        const productName = transaction.product_name;
+
+        if (isNaN(amount)) {
+          console.error("Invalid amount for transaction:", transaction);
+          return; // Skip this transaction
+        }
+
+        // Accumulate total revenue
+        analysis.totalRevenue += amount;
+
+        // Group by date (using YYYY-MM-DD format)
+        const dateKey = dateStr; // Use the original date string from CSV
+        if (!analysis.salesByDate[dateKey]) {
+          analysis.salesByDate[dateKey] = 0;
+        }
+        analysis.salesByDate[dateKey] += amount;
+
+        // Track product sales
+        if (!analysis.topProducts[productName]) {
+          analysis.topProducts[productName] = 0;
+        }
+        analysis.topProducts[productName] += amount;
+
+        // Time-based analysis
+        const dayOfWeek = date.getDay();
+        const month = date.getMonth();
+
+        analysis.timeAnalysis.daily[dayOfWeek]++;
+        analysis.timeAnalysis.monthly[month]++;
+      });
+
+      // Calculate average transaction value
+      analysis.averageTransactionValue =
+        analysis.totalRevenue / analysis.totalTransactions;
+
+      // Convert salesByDate to sorted array for trends
+      analysis.salesTrends = Object.entries(analysis.salesByDate)
+        .map(([date, amount]) => ({
+          date,
+          amount: Number(amount.toFixed(2)),
+        }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // Group by month for monthly trends
+      const monthlyTrends = {};
+      analysis.salesTrends.forEach(({ date, amount }) => {
+        const monthKey = date.substring(0, 7); // Get YYYY-MM
+        if (!monthlyTrends[monthKey]) {
+          monthlyTrends[monthKey] = 0;
+        }
+        monthlyTrends[monthKey] += amount;
+      });
+
+      // Convert monthly trends to array
+      analysis.monthlyTrends = Object.entries(monthlyTrends)
+        .map(([month, amount]) => ({
+          month,
+          amount: Number(amount.toFixed(2)),
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      // Convert topProducts to sorted array
+      analysis.topProducts = Object.entries(analysis.topProducts)
+        .map(([product, amount]) => ({
+          product,
+          amount: Number(amount.toFixed(2)),
+        }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10); // Top 10 products
+
+      // Format numbers
+      analysis.totalRevenue = Number(analysis.totalRevenue.toFixed(2));
+      analysis.averageTransactionValue = Number(
+        analysis.averageTransactionValue.toFixed(2)
+      );
+
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing transaction data:", error);
+      res.status(500).json({
+        message: "Error analyzing transaction data",
+        error: error.message,
+      });
+    }
   },
 };
 
