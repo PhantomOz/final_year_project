@@ -31,7 +31,7 @@ import {
   setDateRange,
   selectSelectedRange,
 } from "../store/slices/analyticsSlice";
-import { generateAnalyticsPDF } from "../utils/pdfGenerator";
+import { generateAnalyticsPDF } from "../utils/pdfGenerator.jsx";
 import FileUploadAnalyzer from "../components/FileUploadAnalyzer";
 import { useChat } from "../hooks/useChat";
 
@@ -267,6 +267,7 @@ const Analytics = () => {
               .join("\n")
           : "No top products available";
 
+      console.log("analysis", analysis);
       const prompt = `As a business analytics expert, please provide a comprehensive analysis of the following sales data:
 
       ${dateRangeText}
@@ -282,7 +283,7 @@ const Analytics = () => {
       }
       - Average Transaction Value: ${formatCurrency(
         type === "range"
-          ? analysis.averageTransactionValue
+          ? analysis.totalAmount / analysis.transactionCount
           : analysis.averageTransactionValue || 0
       )}
       ${
