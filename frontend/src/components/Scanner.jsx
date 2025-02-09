@@ -8,7 +8,7 @@ import {
 } from "../store/slices/scannerSlice";
 
 const Scanner = () => {
-  const { barcode } = useScanner();
+  const { barcode, hasScanner } = useScanner();
   const lastScannedProduct = useSelector(selectLastScannedProduct);
   const isScanning = useSelector(selectIsScanning);
   const error = useSelector(selectScannerError);
@@ -24,7 +24,12 @@ const Scanner = () => {
     <div className="fixed bottom-4 right-4 p-4 bg-white rounded-lg shadow-lg">
       <div className="text-sm font-medium text-gray-500">Scanner Status</div>
       <div className="mt-1">
-        {isScanning ? (
+        {!hasScanner ? (
+          <div className="flex items-center">
+            <div className="h-3 w-3 bg-red-500 rounded-full mr-2"></div>
+            <span className="text-red-500">No Scanner Detected</span>
+          </div>
+        ) : isScanning ? (
           <div className="flex items-center">
             <div className="animate-pulse h-3 w-3 bg-blue-500 rounded-full mr-2"></div>
             <span className="text-blue-500">Scanning...</span>
@@ -47,7 +52,7 @@ const Scanner = () => {
           <div className="text-xs text-gray-500">Last Scanned:</div>
           <div className="text-sm font-medium">{lastScannedProduct.name}</div>
           <div className="text-xs text-gray-500">
-            ${lastScannedProduct.price}
+            ₦{lastScannedProduct.price}
           </div>
         </div>
       )}

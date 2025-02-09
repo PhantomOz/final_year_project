@@ -1,20 +1,20 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout, setCredentials } from "../store/slices/authSlice";
+import { logout } from "../store/slices/authSlice";
 import {
   HomeIcon,
   ShoppingCartIcon,
-  ChartBarIcon,
   UsersIcon,
   Bars3Icon,
   XMarkIcon,
   ArrowRightOnRectangleIcon,
   ClockIcon,
+  CurrencyDollarIcon,
+  ChartPieIcon,
 } from "@heroicons/react/24/outline";
 import PropTypes from "prop-types";
 import Scanner from "./Scanner";
-import { getCurrentUser } from "../services/authService";
 
 const Layout = ({ children }) => {
   const dispatch = useDispatch();
@@ -32,15 +32,15 @@ const Layout = ({ children }) => {
     const adminItems = [
       { path: "/dashboard", name: "Dashboard", icon: HomeIcon },
       { path: "/products", name: "Products", icon: ShoppingCartIcon },
-      { path: "/transactions", name: "Transactions", icon: ChartBarIcon },
-      { path: "/analytics", name: "Analytics", icon: ChartBarIcon },
+      { path: "/transactions", name: "Transactions", icon: CurrencyDollarIcon },
+      { path: "/analytics", name: "Analytics", icon: ChartPieIcon },
       { path: "/users", name: "Users", icon: UsersIcon },
       { path: "/transaction-history", name: "History", icon: ClockIcon },
     ];
 
     const cashierItems = [
       { path: "/transaction-history", name: "History", icon: ClockIcon },
-      { path: "/transactions", name: "Transactions", icon: ChartBarIcon },
+      { path: "/transactions", name: "Transactions", icon: CurrencyDollarIcon },
     ];
 
     return user?.role === "admin" ? adminItems : cashierItems;
@@ -49,31 +49,6 @@ const Layout = ({ children }) => {
   const navItems = getNavItems();
 
   const isActivePath = (path) => location.pathname === path;
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-      console.log(token);
-      if (token) {
-        try {
-          const userData = await getCurrentUser();
-          console.log(userData);
-          dispatch(
-            setCredentials({
-              user: userData,
-            })
-          );
-        } catch (error) {
-          console.error("Error fetching user:", error);
-          handleLogout();
-        }
-      } else if (location.pathname !== "/login") {
-        navigate("/login");
-      }
-    };
-
-    fetchUser();
-  }, [dispatch, navigate, location.pathname]);
 
   return (
     <div className="min-h-screen bg-gray-100">

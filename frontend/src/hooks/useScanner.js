@@ -1,88 +1,75 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { handleScanProduct } from "../store/slices/scannerSlice";
+import { setScanning } from "../store/slices/scannerSlice";
 
 const useScanner = () => {
-  const dispatch = useDispatch();
+  const [hasScanner, setHasScanner] = useState(false);
   const [barcode, setBarcode] = useState("");
-  const [lastScanned, setLastScanned] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
-
-  // Scanner settings
-  const SCANNER_TIMEOUT = 100; // Time between keystrokes (ms)
-  const MIN_BARCODE_LENGTH = 5; // Minimum barcode length
-
-  const handleScan = useCallback(async () => {
-    if (barcode.length >= MIN_BARCODE_LENGTH) {
-      console.log("barcode", barcode);
-      try {
-        await dispatch(handleScanProduct(barcode)).unwrap();
-        // Play success sound
-        const audio = new Audio("/scanner-beep.mp3");
-        audio.play();
-      } catch (error) {
-        console.error("Scan failed:", error);
-        // Play error sound
-        const errorAudio = new Audio("/error-beep.mp3");
-        errorAudio.play();
-      }
-    }
-    setBarcode("");
-    setIsTyping(false);
-  }, [barcode, dispatch]);
+  const [buffer, setBuffer] = useState("");
+  const [lastKeyTime, setLastKeyTime] = useState(Date.now());
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      // Ignore if the target is an input element
-      if (event.target.tagName === "INPUT") {
-        return;
+    let inputBuffer = "";
+    let lastInputTime = Date.now();
+    let scanTimer = null;
+
+    const handleKeyPress = (e) => {
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastInputTime;
+
+      // Most barcode scanners complete their input within 100ms
+      if (timeDiff < 100) {
+        // This is likely from a scanner due to the rapid input
+        setHasScanner(true);
+        inputBuffer += e.key;
+        dispatch(setScanning(true));
+      } else {
+        // Reset buffer for new potential scan
+        inputBuffer = e.key;
       }
 
-      const currentTime = new Date().getTime();
+      lastInputTime = currentTime;
 
-      // If it's a number key or Enter
-      if (/^\d$/.test(event.key) || event.key === "Enter") {
-        event.preventDefault();
+      // Clear any existing timer
+      if (scanTimer) {
+        clearTimeout(scanTimer);
+      }
 
-        // If it's been too long since the last keystroke, start a new barcode
-        if (!lastScanned || currentTime - lastScanned > 500) {
-          setBarcode(event.key === "Enter" ? "" : event.key);
-          setIsTyping(true);
+      // Set a timer to process the buffer
+      scanTimer = setTimeout(() => {
+        if (inputBuffer.length > 5) {
+          // Most barcodes are longer than 5 characters
+          setBarcode(inputBuffer);
+          dispatch(setScanning(false));
         }
-        // If we're in the middle of scanning
-        else if (currentTime - lastScanned < SCANNER_TIMEOUT || isTyping) {
-          if (event.key === "Enter") {
-            handleScan();
-          } else {
-            setBarcode((prev) => prev + event.key);
-          }
-        }
+        inputBuffer = "";
+      }, 100); // Wait for 100ms after last input
+    };
 
-        setLastScanned(currentTime);
+    const handleKeyDown = (e) => {
+      // Prevent Enter key from submitting forms
+      if (e.key === "Enter" && buffer.length > 0) {
+        e.preventDefault();
+        setBarcode(buffer);
+        setBuffer("");
+        dispatch(setScanning(false));
       }
     };
 
+    window.addEventListener("keypress", handleKeyPress);
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [lastScanned, handleScan, isTyping]);
 
-  // Reset typing state if no keystrokes for a while
-  useEffect(() => {
-    if (isTyping) {
-      const timeout = setTimeout(() => {
-        setIsTyping(false);
-        setBarcode("");
-      }, 1000);
-      return () => clearTimeout(timeout);
-    }
-  }, [isTyping, barcode]);
+    return () => {
+      window.removeEventListener("keypress", handleKeyPress);
+      window.removeEventListener("keydown", handleKeyDown);
+      if (scanTimer) {
+        clearTimeout(scanTimer);
+      }
+    };
+  }, [buffer, dispatch]);
 
-  return {
-    barcode,
-    setBarcode,
-    handleScan,
-    isTyping,
-  };
+  return { hasScanner, barcode, setBarcode };
 };
 
 export default useScanner;
