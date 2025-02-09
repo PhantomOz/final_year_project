@@ -16,7 +16,6 @@ import {
   BanknotesIcon,
   ShoppingCartIcon,
   UsersIcon,
-  DocumentArrowDownIcon,
 } from "@heroicons/react/24/outline";
 import { formatCurrency } from "../utils/formatCurrency";
 import MarkdownRenderer from "../components/MarkdownRenderer";
@@ -27,7 +26,6 @@ import {
   selectRangeStats,
   selectSalesTrends,
   selectTopProducts,
-  selectInsights,
   setDateRange,
   selectSelectedRange,
 } from "../store/slices/analyticsSlice";
@@ -71,7 +69,6 @@ const Analytics = () => {
     useSelector(selectSalesTrends);
   const { data: topProducts, loading: productsLoading } =
     useSelector(selectTopProducts);
-  const insights = useSelector(selectInsights);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customRange, setCustomRange] = useState({
     startDate: "",
