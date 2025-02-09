@@ -11,6 +11,7 @@ import Transactions from "./pages/Transactions";
 import Analytics from "./pages/Analytics";
 import UserManagement from "./pages/UserManagement";
 import TransactionHistory from "./pages/TransactionHistory";
+import { PWAInstallButton } from "./components/PWAInstallButton";
 
 function App() {
   return (
@@ -85,6 +86,7 @@ function App() {
                 }
               />
             </Routes>
+            <PWAInstallButton />
           </BrowserRouter>
         </NotificationProvider>
       </PersistGate>
