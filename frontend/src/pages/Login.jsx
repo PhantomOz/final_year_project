@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { login } from "../store/slices/authSlice";
+import { login, checkAuth } from "../store/slices/authSlice";
 import { LockClosedIcon } from "@heroicons/react/24/solid";
 
 const Login = () => {
@@ -11,17 +11,46 @@ const Login = () => {
   });
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, user, token, initialized } = useSelector(
+    (state) => state.auth
+  );
+
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      if (token && !user && !initialized) {
+        try {
+          await dispatch(checkAuth()).unwrap();
+        } catch (err) {
+          console.error("Auto-login failed:", err);
+        }
+      }
+    };
+    checkAuthentication();
+  }, [dispatch, token, user, initialized]);
+
+  useEffect(() => {
+    if (user && token) {
+      navigate(user.isAdmin ? "/dashboard" : "/transactions");
+    }
+  }, [user, token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await dispatch(login(credentials)).unwrap();
-      navigate("/dashboard");
+      const result = await dispatch(login(credentials)).unwrap();
+      navigate(result.user.isAdmin ? "/dashboard" : "/transactions");
     } catch (err) {
       console.error("Login failed:", err);
     }
   };
+
+  if (loading && !initialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

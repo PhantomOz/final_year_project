@@ -3,9 +3,16 @@ import api from "../../services/api";
 
 export const login = createAsyncThunk("auth/login", async (credentials) => {
   const response = await api.post("/users/login", credentials);
-  console.log(response.data);
   localStorage.setItem("token", response.data.token);
   return response.data;
+});
+
+export const checkAuth = createAsyncThunk("auth/check", async () => {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+
+  const response = await api.get("/users/me");
+  return { user: response.data, token };
 });
 
 const authSlice = createSlice({
@@ -15,6 +22,7 @@ const authSlice = createSlice({
     token: localStorage.getItem("token"),
     loading: false,
     error: null,
+    initialized: false,
   },
   reducers: {
     setCredentials: (state, action) => {
@@ -37,10 +45,29 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.initialized = true;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+        state.initialized = true;
+      })
+      .addCase(checkAuth.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(checkAuth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.initialized = true;
+      })
+      .addCase(checkAuth.rejected, (state) => {
+        state.loading = false;
+        state.user = null;
+        state.token = null;
+        state.initialized = true;
+        localStorage.removeItem("token");
       });
   },
 });

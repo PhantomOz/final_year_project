@@ -53,6 +53,7 @@ const Layout = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem("token");
+      console.log(token);
       if (token) {
         try {
           const userData = await getCurrentUser();
