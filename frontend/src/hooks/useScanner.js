@@ -6,7 +6,6 @@ const useScanner = () => {
   const [hasScanner, setHasScanner] = useState(false);
   const [barcode, setBarcode] = useState("");
   const [buffer, setBuffer] = useState("");
-  const [lastKeyTime, setLastKeyTime] = useState(Date.now());
   const dispatch = useDispatch();
 
   useEffect(() => {

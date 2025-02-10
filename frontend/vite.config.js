@@ -12,6 +12,7 @@ export default defineConfig({
         enabled: true,
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 3000000,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
       },
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],

@@ -84,8 +84,14 @@ const scannerSlice = createSlice({
         state.scanHistory.pop();
       }
     },
-    clearLastScannedProduct: (state) => {
-      state.lastScannedProduct = null;
+    setLastScannedProduct: (state, action) => {
+      state.lastScannedProduct = action.payload;
+    },
+    setScannerError: (state, action) => {
+      state.error = action.payload;
+    },
+    clearScannerError: (state) => {
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -172,9 +178,9 @@ export const selectScannerSettings = (state) => state.scanner.settings;
 export const selectScannerDeviceInfo = (state) => state.scanner.deviceInfo;
 export const selectScannerError = (state) => state.scanner.error;
 export const selectScannerLoading = (state) => state.scanner.loading;
+export const selectIsScanning = (state) => state.scanner.isScanning;
 export const selectLastScannedProduct = (state) =>
   state.scanner.lastScannedProduct;
-export const selectIsScanning = (state) => state.scanner.isScanning;
 
 // Actions
 export const {
@@ -185,7 +191,9 @@ export const {
   updateSettings,
   setDeviceInfo,
   addToScanHistory,
-  clearLastScannedProduct,
+  setLastScannedProduct,
+  setScannerError,
+  clearScannerError,
 } = scannerSlice.actions;
 
 // Custom hook for scanner operations with notifications
