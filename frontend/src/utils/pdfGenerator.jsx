@@ -6,6 +6,7 @@ import {
   View,
   StyleSheet,
   pdf,
+  Image,
 } from "@react-pdf/renderer";
 // import { formatCurrency } from "./formatCurrency";
 // import ReactMarkdown from "react-markdown";
@@ -176,6 +177,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#2d3748",
   },
+  chart: {
+    width: "100%",
+    height: 200,
+    marginVertical: 10,
+  },
 });
 
 // Helper function to format currency for PDF
@@ -290,6 +296,15 @@ const formatExcelDate = (excelDate) => {
   });
 };
 
+// Add chart rendering function
+const renderChart = async (chartRef) => {
+  if (!chartRef.current) return null;
+
+  // Convert chart to base64 image
+  const base64Image = chartRef.current.toBase64Image();
+  return base64Image;
+};
+
 // Create Document Component
 export const AnalyticsReport = ({
   rangeStats,
@@ -299,18 +314,29 @@ export const AnalyticsReport = ({
   selectedRange,
   isCustomData,
   monthlyTrends,
+  salesChartRef,
+  productsChartRef,
+  storeName,
+  dateRange,
+  fileName,
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Title */}
       <Text style={styles.title}>
-        {isCustomData ? "Custom Data Analytics Report" : "Analytics Report"}
+        {isCustomData
+          ? `${fileName || "Custom"} Analytics Report`
+          : `${storeName || "Store"} Analytics Report`}
       </Text>
 
       {/* Date Range */}
       <Text style={styles.dateRange}>
         {isCustomData
           ? `Generated on ${new Date().toLocaleDateString()}`
+          : dateRange
+          ? `Period: ${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}`
+          : selectedRange === "today"
+          ? `Date: ${new Date().toLocaleDateString()}`
           : `Period: ${
               selectedRange.charAt(0).toUpperCase() + selectedRange.slice(1)
             }`}
@@ -411,6 +437,24 @@ export const AnalyticsReport = ({
           <MarkdownRenderer content={insights} />
         </View>
       )}
+
+      {/* Sales Chart */}
+      <View style={styles.section}>
+        <Text style={styles.subtitle}>Sales Trends Chart</Text>
+        <Image
+          style={styles.chart}
+          src={salesChartRef?.current?.toBase64Image()}
+        />
+      </View>
+
+      {/* Products Chart */}
+      <View style={styles.section}>
+        <Text style={styles.subtitle}>Top Products Chart</Text>
+        <Image
+          style={styles.chart}
+          src={productsChartRef?.current?.toBase64Image()}
+        />
+      </View>
     </Page>
   </Document>
 );
@@ -427,6 +471,14 @@ AnalyticsReport.propTypes = {
   selectedRange: PropTypes.string.isRequired,
   isCustomData: PropTypes.bool,
   monthlyTrends: PropTypes.array,
+  salesChartRef: PropTypes.object,
+  productsChartRef: PropTypes.object,
+  storeName: PropTypes.string,
+  dateRange: PropTypes.shape({
+    start: PropTypes.instanceOf(Date),
+    end: PropTypes.instanceOf(Date),
+  }),
+  fileName: PropTypes.string,
 };
 
 export const generateAnalyticsPDF = async (data) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Chart as ChartJS,
@@ -56,6 +56,12 @@ const formatExcelDate = (excelDate) => {
   });
 };
 
+// Helper function to convert Excel month number to readable month
+const formatExcelMonth = (excelDate) => {
+  const date = new Date((excelDate - 25569) * 86400 * 1000);
+  return date.toLocaleDateString("en-NG", { month: "long" });
+};
+
 const Analytics = () => {
   const dispatch = useDispatch();
   const { sendMessage } = useChat();
@@ -74,6 +80,8 @@ const Analytics = () => {
     startDate: "",
     endDate: "",
   });
+  const salesChartRef = useRef(null);
+  const productsChartRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -169,28 +177,48 @@ const Analytics = () => {
           totalAmount: customAnalysis.totalRevenue,
           averageTransactionValue: customAnalysis.averageTransactionValue,
         },
-        salesTrends: {
-          labels: customAnalysis.salesTrends.map((trend) => trend.date),
-          datasets: [
-            {
-              data: customAnalysis.salesTrends.map((trend) => trend.amount),
-            },
-          ],
-        },
-        topProducts: {
-          labels: customAnalysis.topProducts.map((product) => product.product),
-          datasets: [
-            {
-              data: customAnalysis.topProducts.map((product) => product.amount),
-            },
-          ],
-        },
+        salesTrends,
+        topProducts,
         insights: customAnalysis.insights,
         selectedRange: "custom",
         isCustomData: true,
         monthlyTrends: customAnalysis.monthlyTrends,
+        salesChartRef,
+        productsChartRef,
+        storeName: "F & M's Supermarket",
+        dateRange: {
+          start: new Date(customRange.startDate),
+          end: new Date(customRange.endDate),
+        },
+        fileName: customRange.customFileName,
       });
     } else if (!statsLoading && !trendsLoading && !productsLoading) {
+      // Get date range based on selected range
+      let startDate, endDate;
+      const now = new Date();
+
+      switch (selectedRange) {
+        case "day":
+          startDate = now;
+          endDate = now;
+          break;
+        case "week":
+          startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+          endDate = new Date(now.setDate(now.getDate() + 6));
+          break;
+        case "month":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          break;
+        case "year":
+          startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear(), 11, 31);
+          break;
+        default:
+          startDate = now;
+          endDate = now;
+      }
+
       generateAnalyticsPDF({
         rangeStats,
         salesTrends,
@@ -198,6 +226,13 @@ const Analytics = () => {
         insights: rangeInsights,
         selectedRange,
         isCustomData: false,
+        salesChartRef,
+        productsChartRef,
+        storeName: "F & M's Supermarket",
+        dateRange: {
+          start: startDate,
+          end: endDate,
+        },
       });
     }
   };
@@ -232,20 +267,35 @@ const Analytics = () => {
           ? `Analysis Period: ${getDateRangeLabel(selectedRange)}\n`
           : "Analysis Period: Custom Data\n";
 
-      // Format monthly trends safely
+      // Format sales trends with proper date formatting for custom data
+      const salesTrendsFormatted =
+        type === "custom" && analysis.salesTrends
+          ? analysis.salesTrends.map((trend) => ({
+              ...trend,
+              date: formatExcelDate(parseFloat(trend.date)),
+            }))
+          : analysis.salesTrends;
+
+      console.log("salesTrendsFormatted", salesTrendsFormatted);
+
+      // Format monthly trends safely with proper date formatting
       const monthlyTrendsText =
         analysis.monthlyTrends && Array.isArray(analysis.monthlyTrends)
           ? analysis.monthlyTrends
               .map((trend) => `${trend.month}: ${formatCurrency(trend.amount)}`)
               .join("\n")
-          : type === "range" && salesTrends?.labels
-          ? salesTrends.labels
+          : type === "range" && analysis.salesTrends?.labels
+          ? analysis.salesTrends.labels
               .map(
                 (label, index) =>
                   `${label}: ${formatCurrency(
-                    salesTrends.datasets[0].data[index]
+                    analysis.salesTrends.datasets[0].data[index]
                   )}`
               )
+              .join("\n")
+          : analysis.salesTrends
+          ? analysis.salesTrends
+              .map((trend) => `${trend.date}: ${formatCurrency(trend.amount)}`)
               .join("\n")
           : "No monthly trends available";
 
@@ -419,6 +469,16 @@ const Analytics = () => {
           date: formatExcelDate(parseFloat(trend.date)),
         })),
       };
+
+      // also format monthly trends
+      formattedAnalysis.monthlyTrends = formattedAnalysis.monthlyTrends.map(
+        (trend) => ({
+          ...trend,
+          month: formatExcelMonth(parseFloat(trend.month)),
+        })
+      );
+
+      console.log("formattedAnalysis", formattedAnalysis);
 
       const insights = await generateAIInsights(formattedAnalysis);
       setCustomAnalysis({
@@ -771,10 +831,14 @@ const Analytics = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="bg-white p-6 rounded-lg shadow">
-          <Line data={chartData} options={chartOptions} />
+          <Line data={chartData} options={chartOptions} ref={salesChartRef} />
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
-          <Bar data={topProductsChartData} options={topProductsChartOptions} />
+          <Bar
+            data={topProductsChartData}
+            options={topProductsChartOptions}
+            ref={productsChartRef}
+          />
         </div>
       </div>
 
