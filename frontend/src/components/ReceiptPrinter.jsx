@@ -7,10 +7,10 @@ import { formatCurrency } from "../utils/formatCurrency";
 const Receipt = React.forwardRef(({ transaction }, ref) => (
   <div ref={ref} className="p-4 bg-white">
     <div className="text-center mb-4">
-      <h2 className="text-xl font-bold">Store Name</h2>
-      <p>123 Store Street</p>
-      <p>City, State 12345</p>
-      <p>Tel: (123) 456-7890</p>
+      <h2 className="text-xl font-bold">F & M&apos;s Supermarket</h2>
+      <p>University Of Benin, Benin City</p>
+      <p>Edo State, 12345</p>
+      <p>Tel: (234) 818-352-4765</p>
     </div>
 
     <div className="mb-4">
